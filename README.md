@@ -24,7 +24,7 @@ A Databricks Asset Bundles (DAB) template for creating modern fullstack applicat
 
 ```bash
 # Initialize from GitHub
-databricks bundle init https://github.com/YOUR_USERNAME/dbx-fullstack-boilerplate --template-dir fullstack-app
+databricks bundle init https://github.com/andresgarciaf/dbx-fullstack-boilerplate --template-dir fullstack-app
 
 # Or from a local copy
 databricks bundle init /path/to/dbx-fullstack-boilerplate --template-dir fullstack-app
