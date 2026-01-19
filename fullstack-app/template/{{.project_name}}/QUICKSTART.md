@@ -32,17 +32,16 @@ This starts:
 
 ## Environment Variables
 
-Create a `.env` file in the project root (copy from `.env.tmpl`):
-
-```bash
-cp .env.tmpl .env
-```
+A `.env` file in the project root is created automatically:
 
 Required variables:
 ```env
 DATABRICKS_HOST=https://your-workspace.cloud.databricks.com
 DATABRICKS_TOKEN=dapi...
-DATABRICKS_WAREHOUSE=abc123def456
+DATABRICKS_WAREHOUSE=abc123
+
+# or use a profile with all of the above variables
+DATABRICKS_PROFILE=.databrickscfg-profile
 ```
 
 Optional (for Lakebase):
@@ -50,6 +49,9 @@ Optional (for Lakebase):
 PGHOST=your-lakebase-host
 PGPORT=5432
 PGDATABASE=databricks_postgres
+PGUSER=token
+PGPASSWORD=your_token
+PGSSLMODE=require
 ```
 
 ## Build for Production
