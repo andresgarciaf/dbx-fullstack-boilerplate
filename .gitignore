@@ -63,5 +63,5 @@ ENV/
 *.swp
 *.swo
 
-# Template files - allow .env.tmpl for DAB templates
+# Template files - allow .env.tmpl for DABs templates
 !**/.env.tmpl

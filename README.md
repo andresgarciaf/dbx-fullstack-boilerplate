@@ -69,7 +69,7 @@ databricks bundle deploy --target prod
 
 ```
 your-project-name/
-├── databricks.yml              # DAB configuration
+├── databricks.yml              # DABs configuration
 ├── resources/
 │   ├── app.yml                 # Databricks App definition
 │   └── lakebase.yml            # Lakebase database resource
@@ -199,7 +199,7 @@ fullstack-app/
 ├── databricks_template_schema.json   # Template configuration
 └── template/
     └── {{.project_name}}/            # Generated project structure
-        ├── databricks.yml.tmpl       # DAB configuration
+        ├── databricks.yml.tmpl       # DABs configuration
         ├── resources/
         │   ├── app.yml.tmpl          # App resource definition
         │   └── lakebase.yml.tmpl     # Lakebase resource definition
