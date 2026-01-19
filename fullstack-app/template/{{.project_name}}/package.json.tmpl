@@ -1,0 +1,20 @@
+{
+  "name": "{{.project_name}}",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.0.0",
+  "scripts": {
+    "setup": "./scripts/setup.sh",
+    "dev": "./scripts/dev.sh",
+    "build": "./scripts/build.sh",
+    "clean": "./scripts/clean.sh",
+    "start": "cd src/api && uv run uvicorn src.api.main:app --host 0.0.0.0 --port 8000",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "format": "turbo run format",
+    "format:check": "turbo run format:check"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.3"
+  }
+}

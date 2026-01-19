@@ -1,0 +1,145 @@
+#!/bin/bash
+
+# Colors
+CYAN='\033[0;36m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
+DIM='\033[2m'
+RESET='\033[0m'
+
+FRONTEND_PORT=3000
+BACKEND_PORT=8000
+
+# Kill processes on ports
+cleanup_ports() {
+    for port in $FRONTEND_PORT $BACKEND_PORT; do
+        lsof -ti:$port 2>/dev/null | xargs kill -9 2>/dev/null
+    done
+}
+
+# Print status
+print_status() {
+    local fe_ready=$1
+    local be_ready=$2
+
+    clear
+    echo ""
+    echo -e "${CYAN}  ╔══════════════════════════════════╗${RESET}"
+    echo -e "${CYAN}  ║ Running Development Environment  ║${RESET}"
+    echo -e "${CYAN}  ╚══════════════════════════════════╝${RESET}"
+    echo ""
+
+    if [ "$be_ready" = "true" ]; then
+        echo -e "  ${BLUE}Backend${RESET}   ${GREEN}✓${RESET}  http://127.0.0.1:${BACKEND_PORT}"
+        echo -e "${DIM}            └─ Docs: http://127.0.0.1:${BACKEND_PORT}/docs${RESET}"
+    else
+        echo -e "  ${BLUE}Backend${RESET}   ${YELLOW}⏳${RESET} Starting..."
+    fi
+
+    if [ "$fe_ready" = "true" ]; then
+        echo -e "  ${GREEN}Frontend${RESET}  ${GREEN}✓${RESET}  http://127.0.0.1:${FRONTEND_PORT}"
+    else
+        echo -e "  ${GREEN}Frontend${RESET}  ${YELLOW}⏳${RESET} Starting..."
+    fi
+
+    echo ""
+    echo -e "${DIM}  Ctrl+C to stop${RESET}"
+    echo ""
+
+    if [ "$fe_ready" = "true" ] && [ "$be_ready" = "true" ]; then
+        echo -e "${DIM}  ─────────────── Logs ───────────────${RESET}"
+        echo ""
+    fi
+}
+
+# Handle exit
+handle_exit() {
+    echo ""
+    echo -e "${YELLOW}Shutting down...${RESET}"
+    kill $BACKEND_PID 2>/dev/null
+    kill $FRONTEND_PID 2>/dev/null
+    cleanup_ports
+    exit 0
+}
+
+trap handle_exit SIGINT SIGTERM
+
+# Main
+echo -e "${DIM}Cleaning up ports...${RESET}"
+cleanup_ports
+
+FRONTEND_READY="false"
+BACKEND_READY="false"
+
+print_status $FRONTEND_READY $BACKEND_READY
+
+# Start backend
+cd src/api
+uv run uvicorn src.api.main:app --reload --port $BACKEND_PORT 2>&1 | while read line; do
+    if [[ "$line" == *"Uvicorn running"* ]] || [[ "$line" == *"startup complete"* ]]; then
+        if [ "$BACKEND_READY" = "false" ]; then
+            BACKEND_READY="true"
+            echo "BACKEND_READY" > /tmp/dbx_backend_ready
+        fi
+    fi
+    # Filter and show logs
+    if [[ "$line" != *"Started reloader"* ]] && \
+       [[ "$line" != *"Started server process"* ]] && \
+       [[ "$line" != *"Waiting for application"* ]] && \
+       [[ "$line" != *"Application startup"* ]] && \
+       [[ "$line" != *"Will watch for changes"* ]]; then
+        echo -e "${BLUE}[api]${RESET} $line"
+    fi
+done &
+BACKEND_PID=$!
+cd ../..
+
+# Start frontend (via turbo)
+turbo run dev --filter=@{{.project_name}}/web -- --port $FRONTEND_PORT 2>&1 | while read line; do
+    if [[ "$line" == *"Ready in"* ]]; then
+        if [ "$FRONTEND_READY" = "false" ]; then
+            FRONTEND_READY="true"
+            echo "FRONTEND_READY" > /tmp/dbx_frontend_ready
+        fi
+    fi
+    # Filter and show logs
+    if [[ "$line" != *"Turbopack"* ]] && \
+       [[ "$line" != *"Experiments"* ]] && \
+       [[ "$line" != *"optimizePackageImports"* ]] && \
+       [[ "$line" != *"Local:"* ]] && \
+       [[ "$line" != *"Network:"* ]] && \
+       [[ "$line" != *"cache bypass"* ]] && \
+       [[ "$line" != *"Packages in scope"* ]] && \
+       [[ "$line" != *"Running dev"* ]] && \
+       [[ "$line" != *"Remote caching"* ]] && \
+       [[ "$line" != *"Starting..."* ]] && \
+       [[ "$line" != *"Ready in"* ]]; then
+        echo -e "${GREEN}[web]${RESET} $line"
+    fi
+done &
+FRONTEND_PID=$!
+
+# Monitor ready state
+rm -f /tmp/dbx_backend_ready /tmp/dbx_frontend_ready
+
+while true; do
+    if [ -f /tmp/dbx_backend_ready ] && [ "$BACKEND_READY" = "false" ]; then
+        BACKEND_READY="true"
+        if [ "$FRONTEND_READY" = "false" ]; then
+            print_status $FRONTEND_READY $BACKEND_READY
+        fi
+    fi
+    if [ -f /tmp/dbx_frontend_ready ] && [ "$FRONTEND_READY" = "false" ]; then
+        FRONTEND_READY="true"
+        print_status $FRONTEND_READY $BACKEND_READY
+    fi
+    if [ "$FRONTEND_READY" = "true" ] && [ "$BACKEND_READY" = "true" ]; then
+        break
+    fi
+    sleep 0.5
+done
+
+# Keep running
+wait

@@ -1,0 +1,18 @@
+resources:
+  apps:
+    {{.project_name}}:
+      name: {{.project_name}}
+      source_code_path: ../src
+      description: "Fullstack application with Next.js frontend and FastAPI backend."
+      resources:
+        - database:
+            instance_name: ${resources.database_instances.app_pg_instance.name}
+            database_name: ${resources.database_catalogs.app_pg_instance_catalog.database_name}
+            permission: CAN_CONNECT_AND_CREATE
+      config:
+        command:
+          - "./scripts/start.sh"
+
+        env:
+          - name: ENVIRONMENT
+            value: "development"

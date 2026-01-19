@@ -1,0 +1,50 @@
+---
+description: General project guidelines and structure
+globs: []
+alwaysApply: true
+---
+
+# General Project Guidelines
+
+## Project Context
+
+This is a fullstack Databricks application with:
+- React/TypeScript frontend (Next.js, Vite, TailwindCSS)
+- Python/FastAPI backend
+- Databricks SDK integration
+- Lakebase (PostgreSQL) support
+
+## Directory Structure
+
+```
+├── src/
+│   ├── api/          # Python FastAPI backend
+│   │   └── src/api/
+│   │       ├── clients/      # SQL backends
+│   │       ├── core/         # Config, middleware
+│   │       ├── routers/      # API endpoints
+│   │       └── services/     # Business logic
+│   └── web/          # React TypeScript frontend
+│       └── src/
+│           ├── components/
+│           ├── hooks/
+│           └── lib/
+├── scripts/          # Build and dev scripts
+└── resources/        # Databricks app config
+```
+
+## Testing
+
+- Python: pytest with fixtures, mock external services
+- TypeScript: Vitest + React Testing Library
+- Test behavior, not implementation
+
+## When Generating Code
+
+1. Always include proper type annotations
+2. Group imports correctly
+3. Follow existing patterns in the codebase
+4. Use modern syntax (Python 3.10+, ES2022+)
+5. Prefer explicit over implicit
+6. Handle errors appropriately
+7. Add docstrings for public functions/classes

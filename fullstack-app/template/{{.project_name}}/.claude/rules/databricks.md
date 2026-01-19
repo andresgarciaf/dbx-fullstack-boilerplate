@@ -1,0 +1,69 @@
+# Databricks Integration Guidelines
+
+## Configuration
+
+- Use `settings.databricks_config` for WorkspaceClient config
+- Use `settings.postgres_config` for Lakebase config
+- Check `settings.is_deployed` for environment detection
+
+```python
+from api.core import settings
+
+# Get configured WorkspaceClient
+ws = WorkspaceClient(config=settings.databricks_config)
+
+# Get PostgreSQL config for Lakebase
+pg_config = settings.postgres_config
+```
+
+## SQL Safety
+
+- Use parameterized queries, never string interpolation for values
+- Use escape functions for dynamic table/column names
+
+```python
+# Good - parameterized query
+backend.fetch("SELECT * FROM users WHERE id = %s", (user_id,))
+
+# Good - escaped identifier
+from api.clients import escape_full_name
+table = escape_full_name("catalog.schema.table")
+backend.execute(f"SELECT * FROM {table}")
+
+# Bad - SQL injection risk
+backend.fetch(f"SELECT * FROM users WHERE id = {user_id}")
+```
+
+## Authentication
+
+- In deployed mode: use per-user tokens from X-Forwarded-Access-Token header
+- In local mode: use .env file with DATABRICKS_HOST/TOKEN or DATABRICKS_PROFILE
+- OAuth tokens refresh automatically via OAuthTokenManager
+- Never hardcode credentials
+
+## Service Pattern
+
+```python
+from api.services import DatabricksService
+
+service = DatabricksService()
+
+# SQL Warehouse queries
+rows = service.sql_backend.fetch("SELECT * FROM table")
+
+# Lakebase (PostgreSQL) queries
+rows = service.lakebase_backend.fetch("SELECT * FROM table")
+
+# Direct SDK access
+user = service.workspace_client.current_user.me()
+```
+
+## SQL Backends
+
+- `StatementExecutionBackend` - Databricks SQL Warehouse queries
+- `SyncLakebaseBackend` - Synchronous PostgreSQL/Lakebase
+- `AsyncLakebaseBackend` - Async PostgreSQL with connection pooling
+
+## File Location
+
+These rules apply to files in `src/api/**/databricks*.py` and `src/api/**/lakebase*.py`

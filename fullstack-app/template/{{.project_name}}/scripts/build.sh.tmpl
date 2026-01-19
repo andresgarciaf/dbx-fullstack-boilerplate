@@ -1,0 +1,51 @@
+#!/bin/bash
+
+# Colors
+CYAN='\033[0;36m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
+DIM='\033[2m'
+RESET='\033[0m'
+
+CHECK="${GREEN}✓${RESET}"
+CROSS="${RED}✗${RESET}"
+
+echo ""
+echo -e "${CYAN}  ╔════════════════════════════════╗${RESET}"
+echo -e "${CYAN}  ║       Building for Production  ║${RESET}"
+echo -e "${CYAN}  ╚════════════════════════════════╝${RESET}"
+echo ""
+
+# Build frontend (via turbo)
+echo -e "  ${YELLOW}→${RESET} Building Next.js frontend..."
+if turbo run build --filter=@{{.project_name}}/web > /tmp/dbx_build.log 2>&1; then
+    echo -e "  ${CHECK} Frontend built"
+else
+    echo -e "  ${CROSS} Frontend build failed"
+    echo ""
+    echo -e "${RED}  Build errors:${RESET}"
+    cat /tmp/dbx_build.log | grep -A 5 "Error\|error\|⨯" | head -20
+    echo ""
+    exit 1
+fi
+
+# Copy to API static
+echo -e "  ${YELLOW}→${RESET} Copying to API static folder..."
+rm -rf src/static
+cp -r src/web/out src/static
+echo -e "  ${CHECK} Static files copied"
+
+# Show build info
+echo ""
+echo -e "${DIM}  Build output:${RESET}"
+echo -e "${DIM}  └─ src/static/ ($(du -sh src/static | cut -f1))${RESET}"
+
+echo ""
+echo -e "  ${GREEN}╔═══════════════════════════════╗${RESET}"
+echo -e "  ${GREEN}║       Build Complete!         ║${RESET}"
+echo -e "  ${GREEN}╚═══════════════════════════════╝${RESET}"
+echo ""
+echo -e "  Run ${CYAN}pnpm start${RESET} to start production server"
+echo -e "  ${DIM}Server will be at http://127.0.0.1:8000${RESET}"
+echo ""

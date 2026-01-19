@@ -1,0 +1,14 @@
+{
+  "welcome_message": "\nWelcome to the DBX Fullstack Boilerplate template!\n\nThis template creates a modern fullstack application with:\n- Next.js 16 frontend with React 19 and Tailwind CSS\n- FastAPI backend with Python 3.10+\n- pnpm workspaces and Turborepo for monorepo management\n- Production-ready deployment on Databricks Apps\n",
+  "properties": {
+    "project_name": {
+      "type": "string",
+      "default": "fullstack-app",
+      "description": "Unique name for this project (lowercase, numbers, and hyphens only)",
+      "order": 1,
+      "pattern": "^[a-z0-9-]+$",
+      "pattern_match_failure_message": "Project name must consist of lowercase letters, numbers, and hyphens only."
+    }
+  },
+  "success_message": "\nYour fullstack bundle '{{.project_name}}' has been created!\n\nNext steps:\n  1. cd {{.project_name}}\n  2. ./scripts/setup.sh     # Install dependencies\n  3. ./scripts/dev.sh       # Start development servers\n  4. databricks bundle deploy  # Deploy to Databricks\n"
+}

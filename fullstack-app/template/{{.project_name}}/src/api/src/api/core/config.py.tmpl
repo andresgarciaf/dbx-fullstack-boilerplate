@@ -1,0 +1,112 @@
+from __future__ import annotations
+
+import os
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+from databricks.sdk.core import Config
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from api.core.context import get_user_token
+
+if TYPE_CHECKING:
+    from api.clients.lakebase_backends import PostgresConfig
+
+# env file path
+ENV_FILE = Path(__file__).resolve().parents[5] / ".env"
+
+
+class Settings(BaseSettings):
+    """Application settings."""
+
+    model_config = SettingsConfigDict(
+        env_file=ENV_FILE,
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    # API Settings
+    api_title: str = "{{.project_name}} API"
+    api_version: str = "0.1.0"
+    debug: bool = False
+
+    # CORS Settings
+    cors_origins: list[str] = ["http://localhost:3000"]
+
+    # WebSocket Settings
+    ws_heartbeat_interval: int = 30
+
+    # Databricks Local Settings (for local development)
+    databricks_host: str = ""
+    databricks_token: str = ""
+    databricks_profile: str = ""
+    databricks_warehouse: str = ""
+    pghost:str = ""
+    pgport:str = "5432"
+    pgdatabase:str = ""
+    pguser:str = ""
+    pgpassword:str = ""
+    pgsslmode:str = "require"
+
+    # Environment
+    @property
+    def is_deployed(self) -> bool:
+        """Check if running in Databricks Apps environment."""
+        return bool(os.getenv("DATABRICKS_APP_NAME"))
+
+    @property
+    def databricks_config(self) -> Config:
+        """Get Databricks SDK config.
+
+        In deployed mode: uses X-Forwarded-Access-Token from request context
+        for per-user authentication.
+
+        In local mode: uses settings from .env file (host/token or profile).
+        """
+        if self.is_deployed:
+            # Use per-user token from request header (set by middleware)
+            token = get_user_token()
+            if token:
+                return Config(token=token)
+            # Fallback to default config (service principal)
+            return Config()
+
+        # Local development: use .env settings
+        if self.databricks_profile:
+            return Config(profile=self.databricks_profile)
+        if self.databricks_host and self.databricks_token:
+            return Config(host=self.databricks_host, token=self.databricks_token)
+
+        raise ValueError(
+            "Databricks config not available. Set DATABRICKS_PROFILE or "
+            "DATABRICKS_HOST + DATABRICKS_TOKEN in .env file."
+        )
+
+    @property
+    def postgres_config(self) -> "PostgresConfig":
+        """Get PostgreSQL configuration for Lakebase.
+
+        In deployed mode: PostgresConfig auto-load from PG* env vars
+        set by Databricks Apps resource binding.
+
+        In local mode: passes .env settings explicitly, with PostgresConfig
+        falling back to env vars for any missing values.
+        """
+
+        if self.is_deployed:
+            # Let PostgresConfig auto-load from PG* environment variables
+            return PostgresConfig()
+
+        # Local development: pass .env settings explicitly
+        # PostgresConfig will use these and fall back to env vars for missing
+        return PostgresConfig(
+            host=self.pghost or None,
+            port=self.pgport or None,
+            database=self.pgdatabase or None,
+            user=self.pguser or None,
+            password=self.pgpassword or None,
+            sslmode=self.pgsslmode or None,
+        )
+
+
+settings = Settings()

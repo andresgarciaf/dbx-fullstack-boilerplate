@@ -1,0 +1,11 @@
+resources:
+  database_instances:
+    app_pg_instance:
+      name: {{.project_name}}_pg
+      capacity: CU_2
+  database_catalogs:
+    app_pg_instance_catalog:
+      database_instance_name: ${resources.database_instances.app_pg_instance.name}
+      name: {{.project_name}}_pg_catalog
+      database_name: {{.project_name}}_db
+      create_database_if_not_exists: true
