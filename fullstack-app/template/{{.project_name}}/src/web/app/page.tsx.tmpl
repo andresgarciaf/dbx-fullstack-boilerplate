@@ -3,11 +3,7 @@
 import { Badge, Button, Card, DarkThemeToggle, Spinner } from "flowbite-react";
 import { useEffect, useState } from "react";
 
-interface HealthStatus {
-  status: string;
-  environment: string;
-  version: string;
-}
+import { api, type HealthStatus } from "./api";
 
 export default function Home() {
   const [health, setHealth] = useState<HealthStatus | null>(null);
@@ -15,12 +11,9 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/health")
-      .then((res) => {
-        if (!res.ok) throw new Error("API unavailable");
-        return res.json();
-      })
-      .then((data: HealthStatus) => {
+    api.health
+      .check()
+      .then((data) => {
         setHealth(data);
         setLoading(false);
       })

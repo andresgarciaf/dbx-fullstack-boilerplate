@@ -33,7 +33,7 @@ print_status() {
 
     if [ "$be_ready" = "true" ]; then
         echo -e "  ${BLUE}Backend${RESET}   ${GREEN}✓${RESET}  http://localhost:${BACKEND_PORT}"
-        echo -e "${DIM}            └─ Docs: http://localhost:${BACKEND_PORT}/docs${RESET}"
+        echo -e "${DIM}            └─ Docs: http://localhost:${BACKEND_PORT}/api/docs${RESET}"
     else
         echo -e "  ${BLUE}Backend${RESET}   ${YELLOW}⏳${RESET} Starting..."
     fi
