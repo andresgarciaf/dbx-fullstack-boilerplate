@@ -1,12 +1,20 @@
+from __future__ import annotations
+
 from fastapi import APIRouter
+
+from ..core.config import settings
 
 router = APIRouter(tags=["health"])
 
 
 @router.get("/health")
 async def health_check() -> dict:
-    """Health check endpoint."""
-    return {"status": "ok"}
+    """Health check endpoint with environment details."""
+    return {
+        "status": "healthy",
+        "environment": "deployed" if settings.is_deployed else "local",
+        "version": settings.api_version,
+    }
 
 
 @router.get("/")

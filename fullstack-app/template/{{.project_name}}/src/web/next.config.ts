@@ -14,6 +14,9 @@ const nextConfig: NextConfig = {
     root: resolve(import.meta.dirname, "../.."),
   },
 
+  // Allow dev origins for cross-origin requests
+  allowedDevOrigins: ["localhost", "127.0.0.1"],
+
   // Rewrites only work in dev mode (proxies /api/* to FastAPI)
   ...(isDev && {
     async rewrites() {

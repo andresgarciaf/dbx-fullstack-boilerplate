@@ -1,0 +1,349 @@
+"use client";
+
+import { Badge, Button, Card, DarkThemeToggle, Spinner } from "flowbite-react";
+import { useEffect, useState } from "react";
+
+interface HealthStatus {
+  status: string;
+  environment: string;
+  version: string;
+}
+
+export default function Home() {
+  const [health, setHealth] = useState<HealthStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/health")
+      .then((res) => {
+        if (!res.ok) throw new Error("API unavailable");
+        return res.json();
+      })
+      .then((data: HealthStatus) => {
+        setHealth(data);
+        setLoading(false);
+      })
+      .catch((err: Error) => {
+        setError(err.message);
+        setLoading(false);
+      });
+  }, []);
+
+  const FEATURES = [
+    {
+      title: "Databricks SQL",
+      description:
+        "Query your data lakehouse using SQL Warehouse with automatic connection pooling",
+      icon: (
+        <svg
+          className="size-8 text-orange-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"
+          />
+        </svg>
+      ),
+    },
+    {
+      title: "Lakebase (PostgreSQL)",
+      description:
+        "Connect to Lakebase with OAuth token refresh for secure, transactional workloads",
+      icon: (
+        <svg
+          className="size-8 text-blue-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+          />
+        </svg>
+      ),
+    },
+    {
+      title: "FastAPI Backend",
+      description:
+        "High-performance Python API with automatic OpenAPI docs and WebSocket support",
+      icon: (
+        <svg
+          className="size-8 text-green-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M13 10V3L4 14h7v7l9-11h-7z"
+          />
+        </svg>
+      ),
+    },
+    {
+      title: "Per-User OAuth",
+      description:
+        "Automatic user token extraction for secure, identity-aware API calls in Databricks Apps",
+      icon: (
+        <svg
+          className="size-8 text-purple-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+          />
+        </svg>
+      ),
+    },
+  ];
+
+  const TECH_STACK = [
+    { name: "Next.js 16", color: "dark" as const },
+    { name: "React 19", color: "info" as const },
+    { name: "FastAPI", color: "success" as const },
+    { name: "Tailwind CSS 4", color: "indigo" as const },
+    { name: "Databricks SDK", color: "warning" as const },
+  ];
+
+  return (
+    <main className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Header */}
+      <header className="border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-red-600">
+              <svg
+                className="size-6 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                />
+              </svg>
+            </div>
+            <span className="text-xl font-semibold text-gray-900 dark:text-white">
+              {"{{.project_name}}"}
+            </span>
+          </div>
+          <div className="flex items-center gap-4">
+            {loading ? (
+              <Spinner size="sm" />
+            ) : error ? (
+              <Badge color="failure">API Offline</Badge>
+            ) : (
+              <Badge color="success">API Connected</Badge>
+            )}
+            <DarkThemeToggle />
+          </div>
+        </div>
+      </header>
+
+      {/* Hero */}
+      <section className="px-4 py-16">
+        <div className="mx-auto max-w-6xl text-center">
+          <h1 className="mb-4 text-4xl font-bold text-gray-900 dark:text-white md:text-5xl">
+            Databricks Fullstack App
+          </h1>
+          <p className="mx-auto mb-8 max-w-2xl text-lg text-gray-600 dark:text-gray-400">
+            A modern fullstack application template with Next.js frontend and
+            FastAPI backend, ready to deploy on Databricks Apps.
+          </p>
+
+          {/* Tech Stack Badges */}
+          <div className="mb-8 flex flex-wrap justify-center gap-2">
+            {TECH_STACK.map((tech) => (
+              <Badge key={tech.name} color={tech.color} size="sm">
+                {tech.name}
+              </Badge>
+            ))}
+          </div>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-wrap justify-center gap-4">
+            <Button
+              href="/api/docs"
+              target="_blank"
+              gradientDuoTone="purpleToBlue"
+            >
+              <svg
+                className="mr-2 size-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+              API Documentation
+            </Button>
+            <Button
+              href="https://docs.databricks.com/en/dev-tools/bundles/index.html"
+              target="_blank"
+              color="gray"
+            >
+              <svg
+                className="mr-2 size-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                />
+              </svg>
+              DAB Documentation
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Grid */}
+      <section className="px-4 py-12">
+        <div className="mx-auto max-w-6xl">
+          <h2 className="mb-8 text-center text-2xl font-bold text-gray-900 dark:text-white">
+            Built-in Features
+          </h2>
+          <div className="grid gap-6 md:grid-cols-2">
+            {FEATURES.map((feature) => (
+              <Card key={feature.title} className="hover:shadow-lg">
+                <div className="flex items-start gap-4">
+                  <div className="shrink-0">{feature.icon}</div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      {feature.title}
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400">
+                      {feature.description}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* API Status Card */}
+      <section className="px-4 py-12">
+        <div className="mx-auto max-w-6xl">
+          <Card>
+            <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+              API Status
+            </h3>
+            {loading ? (
+              <div className="flex items-center gap-2">
+                <Spinner size="sm" />
+                <span className="text-gray-600 dark:text-gray-400">
+                  Checking API health...
+                </span>
+              </div>
+            ) : error ? (
+              <div className="rounded-lg bg-red-50 p-4 dark:bg-red-900/20">
+                <p className="text-red-700 dark:text-red-400">
+                  Unable to connect to the API. Make sure the backend is
+                  running.
+                </p>
+                <code className="mt-2 block text-sm text-red-600 dark:text-red-300">
+                  GET /api/health → {error}
+                </code>
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-700">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Status
+                  </p>
+                  <p className="text-lg font-semibold text-green-600 dark:text-green-400">
+                    {health?.status}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-700">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Environment
+                  </p>
+                  <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {health?.environment}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-700">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Version
+                  </p>
+                  <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {health?.version}
+                  </p>
+                </div>
+              </div>
+            )}
+          </Card>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-gray-200 bg-white px-4 py-8 dark:border-gray-700 dark:bg-gray-800">
+        <div className="mx-auto max-w-6xl text-center text-sm text-gray-500 dark:text-gray-400">
+          <p>
+            Built with{" "}
+            <a
+              href="https://nextjs.org"
+              className="text-blue-600 hover:underline dark:text-blue-400"
+            >
+              Next.js
+            </a>
+            ,{" "}
+            <a
+              href="https://fastapi.tiangolo.com"
+              className="text-blue-600 hover:underline dark:text-blue-400"
+            >
+              FastAPI
+            </a>
+            , and{" "}
+            <a
+              href="https://flowbite-react.com"
+              className="text-blue-600 hover:underline dark:text-blue-400"
+            >
+              Flowbite React
+            </a>
+          </p>
+          <p className="mt-2">
+            Deployable on{" "}
+            <a
+              href="https://docs.databricks.com/en/dev-tools/databricks-apps/index.html"
+              className="text-blue-600 hover:underline dark:text-blue-400"
+            >
+              Databricks Apps
+            </a>
+          </p>
+        </div>
+      </footer>
+    </main>
+  );
+}

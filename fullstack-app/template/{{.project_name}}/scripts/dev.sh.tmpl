@@ -32,14 +32,14 @@ print_status() {
     echo ""
 
     if [ "$be_ready" = "true" ]; then
-        echo -e "  ${BLUE}Backend${RESET}   ${GREEN}✓${RESET}  http://127.0.0.1:${BACKEND_PORT}"
-        echo -e "${DIM}            └─ Docs: http://127.0.0.1:${BACKEND_PORT}/docs${RESET}"
+        echo -e "  ${BLUE}Backend${RESET}   ${GREEN}✓${RESET}  http://localhost:${BACKEND_PORT}"
+        echo -e "${DIM}            └─ Docs: http://localhost:${BACKEND_PORT}/docs${RESET}"
     else
         echo -e "  ${BLUE}Backend${RESET}   ${YELLOW}⏳${RESET} Starting..."
     fi
 
     if [ "$fe_ready" = "true" ]; then
-        echo -e "  ${GREEN}Frontend${RESET}  ${GREEN}✓${RESET}  http://127.0.0.1:${FRONTEND_PORT}"
+        echo -e "  ${GREEN}Frontend${RESET}  ${GREEN}✓${RESET}  http://localhost:${FRONTEND_PORT}"
     else
         echo -e "  ${GREEN}Frontend${RESET}  ${YELLOW}⏳${RESET} Starting..."
     fi
@@ -77,7 +77,7 @@ print_status $FRONTEND_READY $BACKEND_READY
 
 # Start backend
 cd src/api
-uv run uvicorn src.api.main:app --reload --port $BACKEND_PORT 2>&1 | while read line; do
+uv run uvicorn src.api.main:app --reload --host localhost --port $BACKEND_PORT 2>&1 | while read line; do
     if [[ "$line" == *"Uvicorn running"* ]] || [[ "$line" == *"startup complete"* ]]; then
         if [ "$BACKEND_READY" = "false" ]; then
             BACKEND_READY="true"
@@ -97,7 +97,7 @@ BACKEND_PID=$!
 cd ../..
 
 # Start frontend (via turbo)
-turbo run dev --filter=@{{.project_name}}/web -- --port $FRONTEND_PORT 2>&1 | while read line; do
+turbo run dev --filter=@{{.project_name}}/web -- --hostname localhost --port $FRONTEND_PORT 2>&1 | while read line; do
     if [[ "$line" == *"Ready in"* ]]; then
         if [ "$FRONTEND_READY" = "false" ]; then
             FRONTEND_READY="true"
