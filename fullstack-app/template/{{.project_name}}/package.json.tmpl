@@ -9,12 +9,9 @@
     "build": "./scripts/build.sh",
     "clean": "./scripts/clean.sh",
     "start": "cd src/api && uv run uvicorn src.api.main:app --host 0.0.0.0 --port 8000",
-    "lint": "turbo run lint",
-    "typecheck": "turbo run typecheck",
-    "format": "turbo run format",
-    "format:check": "turbo run format:check"
-  },
-  "devDependencies": {
-    "turbo": "^2.5.3"
+    "lint": "pnpm --filter @{{.project_name}}/web lint",
+    "typecheck": "pnpm --filter @{{.project_name}}/web typecheck",
+    "format": "pnpm --filter @{{.project_name}}/web format",
+    "format:check": "pnpm --filter @{{.project_name}}/web format:check"
   }
 }

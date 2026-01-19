@@ -96,30 +96,28 @@ done &
 BACKEND_PID=$!
 cd ../..
 
-# Start frontend (via turbo)
-turbo run dev --filter=@{{.project_name}}/web -- --hostname localhost --port $FRONTEND_PORT 2>&1 | while read line; do
+# Start frontend
+cd src/web
+pnpm dev --hostname localhost --port $FRONTEND_PORT 2>&1 | while read line; do
     if [[ "$line" == *"Ready in"* ]]; then
         if [ "$FRONTEND_READY" = "false" ]; then
             FRONTEND_READY="true"
             echo "FRONTEND_READY" > /tmp/dbx_frontend_ready
         fi
     fi
-    # Filter and show logs
+    # Filter and show logs (skip noisy Next.js startup messages)
     if [[ "$line" != *"Turbopack"* ]] && \
        [[ "$line" != *"Experiments"* ]] && \
        [[ "$line" != *"optimizePackageImports"* ]] && \
        [[ "$line" != *"Local:"* ]] && \
        [[ "$line" != *"Network:"* ]] && \
-       [[ "$line" != *"cache bypass"* ]] && \
-       [[ "$line" != *"Packages in scope"* ]] && \
-       [[ "$line" != *"Running dev"* ]] && \
-       [[ "$line" != *"Remote caching"* ]] && \
        [[ "$line" != *"Starting..."* ]] && \
        [[ "$line" != *"Ready in"* ]]; then
         echo -e "${GREEN}[web]${RESET} $line"
     fi
 done &
 FRONTEND_PID=$!
+cd ../..
 
 # Monitor ready state
 rm -f /tmp/dbx_backend_ready /tmp/dbx_frontend_ready

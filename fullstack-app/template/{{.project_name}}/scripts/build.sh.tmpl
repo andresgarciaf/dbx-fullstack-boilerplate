@@ -17,9 +17,9 @@ echo -e "${CYAN}  ║       Building for Production  ║${RESET}"
 echo -e "${CYAN}  ╚════════════════════════════════╝${RESET}"
 echo ""
 
-# Build frontend (via turbo)
+# Build frontend
 echo -e "  ${YELLOW}→${RESET} Building Next.js frontend..."
-if turbo run build --filter=@{{.project_name}}/web > /tmp/dbx_build.log 2>&1; then
+if (cd src/web && pnpm build) > /tmp/dbx_build.log 2>&1; then
     echo -e "  ${CHECK} Frontend built"
 else
     echo -e "  ${CROSS} Frontend build failed"

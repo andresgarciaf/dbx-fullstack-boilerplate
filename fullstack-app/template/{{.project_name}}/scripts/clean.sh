@@ -30,8 +30,6 @@ rm -rf node_modules 2>/dev/null
 rm -rf src/web/node_modules 2>/dev/null
 rm -rf src/web/.next 2>/dev/null
 rm -rf src/web/out 2>/dev/null
-rm -rf .turbo 2>/dev/null
-rm -rf src/web/.turbo 2>/dev/null
 echo -e "  ${CHECK} Node.js cache cleaned"
 
 # Clean Python

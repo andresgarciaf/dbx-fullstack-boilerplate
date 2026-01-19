@@ -7,7 +7,7 @@ A Databricks Asset Bundles (DAB) template for creating modern fullstack applicat
 - **Frontend**: Next.js 16, React 19, Tailwind CSS 4, Flowbite React
 - **Backend**: Python 3.10+, FastAPI, uvicorn, Databricks SDK
 - **Database**: Databricks SQL Warehouse, Lakebase (PostgreSQL)
-- **Tooling**: pnpm, Turborepo, uv
+- **Tooling**: pnpm, uv
 - **Deployment**: Databricks Apps
 
 ## Features
@@ -44,7 +44,7 @@ pnpm dev
 
 Development servers:
 - Frontend: http://localhost:3000
-- Backend: http://localhost:8000 (API docs at /docs)
+- Backend: http://localhost:8000 (API docs at /api/docs)
 
 ### Deploy to Databricks
 
@@ -95,8 +95,7 @@ your-project-name/
 │   ├── CLAUDE.md               # Project overview
 │   └── rules/                  # Modular AI rules
 ├── package.json
-├── pnpm-workspace.yaml
-└── turbo.json
+└── pnpm-workspace.yaml
 ```
 
 ## API Architecture

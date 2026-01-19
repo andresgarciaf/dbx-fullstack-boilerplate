@@ -52,18 +52,6 @@ else
     MISSING+=("uv")
 fi
 
-# Check turbo (local)
-if [ -f "node_modules/.bin/turbo" ] || command -v turbo &> /dev/null; then
-    if [ -f "node_modules/.bin/turbo" ]; then
-        TURBO_VERSION=$(./node_modules/.bin/turbo --version 2>/dev/null || echo "installed")
-    else
-        TURBO_VERSION=$(turbo --version 2>/dev/null || echo "installed")
-    fi
-    echo -e "  ${CHECK} turbo           ${DIM}${TURBO_VERSION}${RESET}"
-else
-    echo -e "  ${WARN} turbo           ${YELLOW}Will install with pnpm${RESET}"
-fi
-
 echo ""
 
 # Show installation instructions if missing
