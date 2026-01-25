@@ -3,17 +3,23 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    # Podman compatibility: map container user to host user
+    # This is ignored by Docker but required for rootless Podman
+    userns_mode: keep-id
     volumes:
-      - ..:/workspace:cached
+      - ..:/workspace:cached,z
       # Persist VS Code extensions and server
-      - vscode-extensions:/home/vscode/.vscode-server/extensions
-      - vscode-insiders:/home/vscode/.vscode-server-insiders/extensions
+      - vscode-extensions:/home/vscode/.vscode-server/extensions:z
+      - vscode-insiders:/home/vscode/.vscode-server-insiders/extensions:z
       # Persist pnpm cache for faster installs
-      - pnpm-store:/home/vscode/.local/share/pnpm
+      - pnpm-store:/home/vscode/.local/share/pnpm:z
       # Persist uv cache for faster Python installs
-      - uv-cache:/home/vscode/.cache/uv
+      - uv-cache:/home/vscode/.cache/uv:z
       # Persist bash history
-      - bash-history:/home/vscode/.bash_history_dir
+      - bash-history:/home/vscode/.bash_history_dir:z
+    # Security options for Podman (ignored by Docker)
+    security_opt:
+      - label:disable
     environment:
       # Development environment
       - NODE_ENV=development

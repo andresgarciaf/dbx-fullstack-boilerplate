@@ -6,7 +6,7 @@ Get your development environment running in minutes.
 
 The easiest way to get started. Works with **VS Code**, **Cursor**, and **PyCharm**.
 
-**Prerequisites:** Docker Desktop
+**Prerequisites:** Docker Desktop or Podman
 
 ### VS Code / Cursor
 

@@ -1,12 +1,52 @@
 # Dev Container Setup
 
-This project includes a fully configured development container that works with **VS Code**, **Cursor**, and **PyCharm**. The container includes all required tools pre-installed:
+This project includes a fully configured development container that works with **VS Code**, **Cursor**, and **PyCharm**, using either **Docker** or **Podman**.
+
+## Included Tools
 
 - Node.js 22 with pnpm 10
 - Python 3.10 with uv
 - Databricks CLI
 - PostgreSQL client (for Lakebase)
 - Git and GitHub CLI
+
+## Container Runtime
+
+### Docker (Default)
+
+Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) and ensure it's running.
+
+### Podman (Alternative)
+
+Podman is a daemonless, rootless container engine. The dev container is fully compatible with Podman.
+
+**macOS:**
+```bash
+brew install podman
+podman machine init
+podman machine start
+```
+
+**Linux:**
+```bash
+# Fedora/RHEL
+sudo dnf install podman
+
+# Ubuntu/Debian
+sudo apt install podman
+```
+
+**Configure VS Code/Cursor for Podman:**
+1. Open Settings (Cmd/Ctrl + ,)
+2. Search for "dev containers docker path"
+3. Set `Dev > Containers: Docker Path` to `podman`
+
+Or add to `settings.json`:
+```json
+{
+  "dev.containers.dockerPath": "podman"
+}
+```
 
 ## Quick Start
 
@@ -92,8 +132,43 @@ The following are persisted between container rebuilds:
 
 ### Container won't start
 
-1. Ensure Docker is running
+1. Ensure Docker or Podman is running
 2. Try rebuilding: Command Palette → `Dev Containers: Rebuild Container`
+
+**Docker:**
+```bash
+docker info  # Check if Docker is running
+```
+
+**Podman:**
+```bash
+podman machine start  # Start Podman machine (macOS)
+podman info           # Verify Podman is running
+```
+
+### Podman permission issues
+
+If you encounter permission errors with Podman:
+
+```bash
+# Reset Podman machine (macOS)
+podman machine stop
+podman machine rm
+podman machine init --rootful=false
+podman machine start
+
+# Verify user namespace mapping
+podman unshare cat /proc/self/uid_map
+```
+
+### Podman volume mount errors
+
+If volumes fail to mount with SELinux errors (Linux):
+
+```bash
+# The :z flag should handle this, but if not:
+sudo setsebool -P container_manage_cgroup on
+```
 
 ### Databricks CLI not authenticated
 
@@ -119,4 +194,16 @@ cd src/api && uv sync && cd ..
 # Find and kill process using port
 lsof -ti:3000 | xargs kill -9
 lsof -ti:8000 | xargs kill -9
+```
+
+### Podman socket not found (VS Code)
+
+If VS Code can't find the Podman socket:
+
+```bash
+# macOS - Create Docker socket symlink
+sudo ln -s ~/.local/share/containers/podman/machine/podman.sock /var/run/docker.sock
+
+# Or set in VS Code settings:
+# "dev.containers.dockerPath": "podman"
 ```

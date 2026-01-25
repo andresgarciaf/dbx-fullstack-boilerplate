@@ -4,6 +4,11 @@
   "service": "dev",
   "workspaceFolder": "/workspace",
 
+  // Podman compatibility: map container user to host user for rootless mode
+  "runArgs": ["--userns=keep-id"],
+  "containerUser": "vscode",
+  "updateRemoteUserUID": true,
+
   "features": {
     "ghcr.io/devcontainers/features/git:1": {},
     "ghcr.io/devcontainers/features/github-cli:1": {}
@@ -84,8 +89,21 @@
     "PYTHONUNBUFFERED": "1"
   },
 
+  // Host config mounts (optional - works if files exist)
+  // For Podman: ensure files exist or remove these mounts
   "mounts": [
-    "source=${localEnv:HOME}/.databrickscfg,target=/home/vscode/.databrickscfg,type=bind,readonly",
-    "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,readonly"
-  ]
+    {
+      "source": "${localEnv:HOME}${localEnv:USERPROFILE}/.databrickscfg",
+      "target": "/home/vscode/.databrickscfg",
+      "type": "bind"
+    },
+    {
+      "source": "${localEnv:HOME}${localEnv:USERPROFILE}/.gitconfig",
+      "target": "/home/vscode/.gitconfig",
+      "type": "bind"
+    }
+  ],
+
+  // Init command to handle missing config files gracefully
+  "initializeCommand": "touch ${HOME:-$USERPROFILE}/.databrickscfg 2>/dev/null || true"
 }
