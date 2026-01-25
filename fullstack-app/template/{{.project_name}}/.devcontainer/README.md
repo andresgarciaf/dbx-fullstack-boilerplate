@@ -2,6 +2,17 @@
 
 This project includes a fully configured development container that works with **VS Code**, **Cursor**, and **PyCharm**, using either **Docker** or **Podman**.
 
+## Automatic Runtime Detection
+
+When you open this project in a dev container, the initialization script automatically:
+
+1. **Detects** if Docker or Podman is installed
+2. **Starts** the container runtime if it's not running
+3. **Configures** VS Code/Cursor to use Podman (if using Podman)
+4. **Creates** necessary config files for bind mounts
+
+You don't need to manually start Docker Desktop or Podman - just open the project and it handles everything.
+
 ## Included Tools
 
 - Node.js 22 with pnpm 10
@@ -10,43 +21,43 @@ This project includes a fully configured development container that works with *
 - PostgreSQL client (for Lakebase)
 - Git and GitHub CLI
 
-## Container Runtime
+## Container Runtime Installation
 
-### Docker (Default)
+You need either Docker or Podman installed (the dev container works with both).
 
-Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) and ensure it's running.
+### Docker (Recommended for beginners)
 
-### Podman (Alternative)
+**macOS:**
+```bash
+brew install --cask docker
+```
+Or download from: https://www.docker.com/products/docker-desktop
 
-Podman is a daemonless, rootless container engine. The dev container is fully compatible with Podman.
+**Linux:**
+```bash
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER
+# Log out and back in
+```
+
+### Podman (Lighter weight alternative)
 
 **macOS:**
 ```bash
 brew install podman
-podman machine init
-podman machine start
 ```
 
-**Linux:**
+**Linux (Fedora/RHEL):**
 ```bash
-# Fedora/RHEL
 sudo dnf install podman
+```
 
-# Ubuntu/Debian
+**Linux (Ubuntu/Debian):**
+```bash
 sudo apt install podman
 ```
 
-**Configure VS Code/Cursor for Podman:**
-1. Open Settings (Cmd/Ctrl + ,)
-2. Search for "dev containers docker path"
-3. Set `Dev > Containers: Docker Path` to `podman`
-
-Or add to `settings.json`:
-```json
-{
-  "dev.containers.dockerPath": "podman"
-}
-```
+> **Note:** The initialization script automatically configures VS Code/Cursor for Podman if it's your only runtime.
 
 ## Quick Start
 
@@ -55,8 +66,9 @@ Or add to `settings.json`:
 1. Install the **Dev Containers** extension
 2. Open the project folder
 3. Click "Reopen in Container" when prompted (or use Command Palette: `Dev Containers: Reopen in Container`)
-4. Wait for the container to build and dependencies to install
-5. Run `pnpm dev` to start development
+4. The init script will automatically start Docker/Podman if needed
+5. Wait for the container to build and dependencies to install
+6. Run `pnpm dev` to start development
 
 ### PyCharm
 
@@ -132,15 +144,20 @@ The following are persisted between container rebuilds:
 
 ### Container won't start
 
-1. Ensure Docker or Podman is running
+The init script should auto-start Docker/Podman, but if it fails:
+
+1. Run the init script manually to see detailed output:
+   ```bash
+   bash .devcontainer/scripts/init-container-runtime.sh
+   ```
 2. Try rebuilding: Command Palette → `Dev Containers: Rebuild Container`
 
-**Docker:**
+**Check Docker:**
 ```bash
 docker info  # Check if Docker is running
 ```
 
-**Podman:**
+**Check Podman:**
 ```bash
 podman machine start  # Start Podman machine (macOS)
 podman info           # Verify Podman is running

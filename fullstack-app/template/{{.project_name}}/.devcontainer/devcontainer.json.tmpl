@@ -90,7 +90,7 @@
   },
 
   // Host config mounts (optional - works if files exist)
-  // For Podman: ensure files exist or remove these mounts
+  // The initializeCommand ensures these files exist before mounting
   "mounts": [
     {
       "source": "${localEnv:HOME}${localEnv:USERPROFILE}/.databrickscfg",
@@ -104,6 +104,6 @@
     }
   ],
 
-  // Init command to handle missing config files gracefully
-  "initializeCommand": "touch ${HOME:-$USERPROFILE}/.databrickscfg 2>/dev/null || true"
+  // Runs on HOST before container starts - ensures Docker/Podman is running
+  "initializeCommand": "bash .devcontainer/scripts/init-container-runtime.sh"
 }
