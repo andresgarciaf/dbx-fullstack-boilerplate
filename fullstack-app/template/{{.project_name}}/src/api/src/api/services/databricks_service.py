@@ -17,6 +17,7 @@ from api.clients import (
     LakebaseBackend,
     SqlBackend,
     StatementExecutionBackend,
+    StatementExecutionPgBackend,
     SyncLakebaseBackend,
 )
 from api.core import settings
@@ -94,28 +95,22 @@ class DatabricksService(GlobalContext):
     def lakebase_backend(self) -> SyncLakebaseBackend:
         """Get synchronous Lakebase (PostgreSQL) backend.
 
-        Uses the same WorkspaceClient for OAuth token refresh.
-        PostgreSQL config comes from settings (env vars when deployed,
-        .env file during local development).
+        Uses StatementExecutionPgBackend factory which configures OAuth token
+        management via WorkspaceClient. PostgreSQL config comes from settings.
         """
-        return SyncLakebaseBackend(
-            workspace_client=self.workspace_client,
-            pg_config=self._settings.postgres_config,
-        )
+        return StatementExecutionPgBackend.sync(self.workspace_client)
 
     @property
     def async_lakebase_backend(self) -> AsyncLakebaseBackend:
         """Get async Lakebase backend for high-performance queries.
 
-        Uses the same WorkspaceClient for OAuth token refresh.
-        PostgreSQL config comes from settings.
+        Uses StatementExecutionPgBackend factory which configures OAuth token
+        management via WorkspaceClient. PostgreSQL config comes from settings.
         Note: This is a property, not cached_property, because async
         backends may need fresh connections per request context.
         """
         if self._async_lakebase_backend is None:
-            self._async_lakebase_backend = AsyncLakebaseBackend(
-                workspace_client=self.workspace_client,
-                pg_config=self._settings.postgres_config,
+            self._async_lakebase_backend = StatementExecutionPgBackend.async_(
+                self.workspace_client
             )
         return self._async_lakebase_backend
-
