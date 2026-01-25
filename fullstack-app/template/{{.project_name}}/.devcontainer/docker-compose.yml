@@ -1,0 +1,45 @@
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ..:/workspace:cached
+      # Persist VS Code extensions and server
+      - vscode-extensions:/home/vscode/.vscode-server/extensions
+      - vscode-insiders:/home/vscode/.vscode-server-insiders/extensions
+      # Persist pnpm cache for faster installs
+      - pnpm-store:/home/vscode/.local/share/pnpm
+      # Persist uv cache for faster Python installs
+      - uv-cache:/home/vscode/.cache/uv
+      # Persist bash history
+      - bash-history:/home/vscode/.bash_history_dir
+    environment:
+      # Development environment
+      - NODE_ENV=development
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      # Databricks (override in .env or mount ~/.databrickscfg)
+      - DATABRICKS_HOST=${DATABRICKS_HOST:-}
+      - DATABRICKS_TOKEN=${DATABRICKS_TOKEN:-}
+      - DATABRICKS_WAREHOUSE=${DATABRICKS_WAREHOUSE:-}
+      - DATABRICKS_PROFILE=${DATABRICKS_PROFILE:-}
+      # Lakebase/PostgreSQL (optional)
+      - PGHOST=${PGHOST:-}
+      - PGPORT=${PGPORT:-5432}
+      - PGDATABASE=${PGDATABASE:-}
+      - PGUSER=${PGUSER:-}
+      - PGPASSWORD=${PGPASSWORD:-}
+      - PGSSLMODE=${PGSSLMODE:-require}
+    ports:
+      - "3000:3000"
+      - "8000:8000"
+    # Keep container running
+    command: sleep infinity
+
+volumes:
+  vscode-extensions:
+  vscode-insiders:
+  pnpm-store:
+  uv-cache:
+  bash-history:

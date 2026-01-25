@@ -2,16 +2,43 @@
 
 Get your development environment running in minutes.
 
-## Prerequisites
+## Option 1: Dev Container (Recommended)
+
+The easiest way to get started. Works with **VS Code**, **Cursor**, and **PyCharm**.
+
+**Prerequisites:** Docker Desktop
+
+### VS Code / Cursor
+
+1. Install the **Dev Containers** extension
+2. Open this folder
+3. Click "Reopen in Container" when prompted
+4. Run `pnpm dev` to start development
+
+### PyCharm
+
+1. Install the **Dev Containers** plugin
+2. File → Remote Development → Dev Containers
+3. Select this project folder
+
+The container includes all tools pre-installed: Node.js 22, Python 3.10, pnpm, uv, and Databricks CLI.
+
+See [.devcontainer/README.md](.devcontainer/README.md) for detailed instructions.
+
+---
+
+## Option 2: Local Installation
+
+### Prerequisites
 
 Ensure you have the following installed:
 
 - **Node.js** (v18+): `brew install node`
-- **pnpm**: `npm install -g pnpm`
+- **pnpm** (v10+): `npm install -g pnpm`
 - **uv** (Python): `curl -LsSf https://astral.sh/uv/install.sh | sh`
 - **Databricks CLI**: `brew tap databricks/tap && brew install databricks`
 
-## Setup
+### Setup
 
 ```bash
 # Install all dependencies (Node.js + Python)
