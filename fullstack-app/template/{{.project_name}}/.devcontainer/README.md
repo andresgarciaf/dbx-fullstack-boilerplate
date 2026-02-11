@@ -7,11 +7,16 @@ This project includes a fully configured development container that works with *
 When you open this project in a dev container, the initialization script automatically:
 
 1. **Detects** if Docker or Podman is installed
-2. **Starts** the container runtime if it's not running
-3. **Configures** VS Code/Cursor to use Podman (if using Podman)
-4. **Creates** necessary config files for bind mounts
+2. **Starts** the container runtime if it's not running (Docker Desktop, Podman machine, etc.)
+3. **Generates** `docker-compose.override.yml` with runtime-specific settings
+4. **Configures** VS Code/Cursor to use Podman (if using Podman)
+5. **Creates** necessary config files for bind mounts (`~/.databrickscfg`, `~/.gitconfig`)
 
-You don't need to manually start Docker Desktop or Podman - just open the project and it handles everything.
+You don't need to manually start Docker Desktop or Podman — just open the project and it handles everything.
+
+### How Docker/Podman Compatibility Works
+
+The `docker-compose.yml` contains only settings that work with both runtimes. Runtime-specific settings (like Podman's `userns_mode: keep-id`) are generated in `docker-compose.override.yml` by the init script. This override file is gitignored and regenerated on each run.
 
 ## Included Tools
 
@@ -74,13 +79,13 @@ sudo apt install podman
 
 **Option 1: Dev Containers Plugin (Recommended)**
 1. Install the **Dev Containers** plugin from JetBrains Marketplace
-2. File → Remote Development → Dev Containers
+2. File > Remote Development > Dev Containers
 3. Select this project folder
 4. PyCharm will use the `devcontainer.json` configuration
 
 **Option 2: Docker Compose**
 1. Open the project normally
-2. Go to Settings → Build, Execution, Deployment → Docker
+2. Go to Settings > Build, Execution, Deployment > Docker
 3. Add a new Docker configuration pointing to `.devcontainer/docker-compose.yml`
 4. Configure Python interpreter to use the container
 
@@ -150,7 +155,7 @@ The init script should auto-start Docker/Podman, but if it fails:
    ```bash
    bash .devcontainer/scripts/init-container-runtime.sh
    ```
-2. Try rebuilding: Command Palette → `Dev Containers: Rebuild Container`
+2. Try rebuilding: Command Palette > `Dev Containers: Rebuild Container`
 
 **Check Docker:**
 ```bash
@@ -161,6 +166,19 @@ docker info  # Check if Docker is running
 ```bash
 podman machine start  # Start Podman machine (macOS)
 podman info           # Verify Podman is running
+```
+
+### Compose override file issues
+
+The init script generates `.devcontainer/docker-compose.override.yml` automatically. If you see errors about this file:
+
+```bash
+# Regenerate it by running the init script
+bash .devcontainer/scripts/init-container-runtime.sh
+
+# Or create a minimal one manually:
+echo 'services:
+  dev: {}' > .devcontainer/docker-compose.override.yml
 ```
 
 ### Podman permission issues

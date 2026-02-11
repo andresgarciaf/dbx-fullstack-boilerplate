@@ -10,11 +10,9 @@ import abc
 import logging
 import re
 import time
-from collections.abc import Iterator
 from dataclasses import fields, is_dataclass
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
-from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.sql import (
     Disposition,
     ExecuteStatementRequestOnWaitTimeout,
@@ -24,6 +22,11 @@ from databricks.sdk.service.sql import (
 
 from api.clients.sql_core import Row, dataclass_to_columns, get_type_converter
 from api.clients.sql_escapes import escape_full_name, escape_name
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
+    from databricks.sdk import WorkspaceClient
 
 logger = logging.getLogger(__name__)
 
@@ -175,7 +178,7 @@ class SqlBackend(abc.ABC):
         if isinstance(value, str):
             escaped = value.replace("'", "''")
             return f"'{escaped}'"
-        return f"'{str(value)}'"
+        return f"'{value!s}'"
 
     def _normalize_sql(self, sql: str) -> str:
         """Normalize whitespace in SQL for logging."""

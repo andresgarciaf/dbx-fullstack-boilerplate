@@ -1,17 +1,26 @@
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
+import asyncio
+import logging
+from contextlib import asynccontextmanager, suppress
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from fastapi import APIRouter, FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from .core.config import settings
-from .core.middleware import RequestContextMiddleware
-from .routers import health
+from api.core.config import settings
+from api.core.errors import AppError
+from api.core.logging_config import configure_logging
+from api.core.middleware import RequestContextMiddleware
+from api.routers import health
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
+
+logger = logging.getLogger(__name__)
 
 # Static files directory (Next.js build output)
 STATIC_DIR = Path(__file__).parent.parent / "static"
@@ -43,11 +52,18 @@ manager = ConnectionManager()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """Application lifespan handler."""
+    """Application lifespan handler with graceful shutdown."""
     # Startup
+    configure_logging(level="DEBUG" if settings.debug else "INFO")
+    logger.info("Application starting up...")
     yield
-    # Shutdown
+    # Shutdown (Databricks Apps has 15s limit, so we use short timeouts)
+    logger.info("Shutdown initiated...")
+    for ws in manager.active_connections[:]:
+        with suppress(Exception):
+            await asyncio.wait_for(ws.close(1001, "Server shutting down"), timeout=2.0)
     manager.active_connections.clear()
+    logger.info("Shutdown complete")
 
 
 app = FastAPI(
@@ -70,6 +86,33 @@ app.add_middleware(
 
 # Add request context middleware (extracts X-Forwarded-Access-Token for per-user auth)
 app.add_middleware(RequestContextMiddleware)
+
+
+# Global exception handlers for consistent error responses
+@app.exception_handler(AppError)
+async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
+    """Handle structured application errors."""
+    return JSONResponse(status_code=exc.status_code, content={"error": exc.to_dict()})
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+    """Handle FastAPI HTTP exceptions with consistent format."""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error": {"code": exc.status_code, "message": exc.detail}},
+    )
+
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Handle unexpected exceptions with logging."""
+    logger.exception("Unhandled exception: %s", exc)
+    return JSONResponse(
+        status_code=500,
+        content={"error": {"code": 500, "message": "Internal server error"}},
+    )
+
 
 # API Router - all REST endpoints under /api
 api_router = APIRouter(prefix="/api")

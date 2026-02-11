@@ -1,11 +1,12 @@
 {
   "name": "{{.project_name}} Dev Environment",
-  "dockerComposeFile": "docker-compose.yml",
+  "dockerComposeFile": ["docker-compose.yml", "docker-compose.override.yml"],
   "service": "dev",
   "workspaceFolder": "/workspace",
 
-  // Podman compatibility: map container user to host user for rootless mode
-  "runArgs": ["--userns=keep-id"],
+  // The init script generates docker-compose.override.yml with Podman-specific
+  // settings (userns_mode: keep-id) when Podman is detected. For Docker, the
+  // override is a no-op. This avoids Docker errors from Podman-only directives.
   "containerUser": "vscode",
   "updateRemoteUserUID": true,
 
@@ -89,8 +90,7 @@
     "PYTHONUNBUFFERED": "1"
   },
 
-  // Host config mounts (optional - works if files exist)
-  // The initializeCommand ensures these files exist before mounting
+  // Host config mounts (files are created by initializeCommand if missing)
   "mounts": [
     {
       "source": "${localEnv:HOME}${localEnv:USERPROFILE}/.databrickscfg",
@@ -105,5 +105,6 @@
   ],
 
   // Runs on HOST before container starts - ensures Docker/Podman is running
+  // and generates docker-compose.override.yml for the detected runtime
   "initializeCommand": "bash .devcontainer/scripts/init-container-runtime.sh"
 }

@@ -17,8 +17,50 @@ dev = [
     "pytest>=8.0.0",
     "pytest-asyncio>=0.23.0",
     "httpx>=0.27.0",
+    "ruff>=0.11.0",
 ]
 
 [build-system]
 requires = ["uv_build>=0.9.26,<0.10.0"]
 build-backend = "uv_build"
+
+# ---------- Ruff ----------
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+src = ["src"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle
+    "F",         # pyflakes
+    "I",         # isort
+    "N",         # pep8-naming
+    "UP",        # pyupgrade
+    "B",         # flake8-bugbear
+    "SIM",       # flake8-simplify
+    "TCH",       # flake8-type-checking
+    "RUF",       # ruff-specific
+    "C4",        # flake8-comprehensions
+    "T20",       # flake8-print
+    "PIE",       # flake8-pie
+    "PT",        # flake8-pytest-style
+    "RET",       # flake8-return
+    "TID",       # flake8-tidy-imports
+]
+ignore = ["E501"]  # formatter handles line length
+
+[tool.ruff.lint.per-file-ignores]
+"src/api/clients/lakebase_backends.py" = ["N806"]  # RowClass is conventional for class factories
+"src/api/clients/sql_backends.py" = ["N806"]
+"src/api/services/databricks_service.py" = ["B024"]  # ABC used as marker base class
+
+[tool.ruff.lint.isort]
+known-first-party = ["api"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

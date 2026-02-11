@@ -5,11 +5,13 @@ Lightweight implementation inspired by databricks-labs-lsql.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator
 from dataclasses import fields, is_dataclass
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterator
 
 T = TypeVar("T")
 
@@ -47,6 +49,7 @@ class Row(tuple):
     @classmethod
     def factory(cls, col_names: list[str]) -> type[Row]:
         """Create a Row subclass with predefined column names."""
+
         class NamedRow(Row):
             _fields = tuple(col_names)
 
@@ -63,24 +66,24 @@ class Row(tuple):
         try:
             idx = self._fields.index(name)
             return self[idx]
-        except (ValueError, AttributeError):
-            raise AttributeError(f"Row has no field '{name}'")
+        except (ValueError, AttributeError) as err:
+            raise AttributeError(f"Row has no field '{name}'") from err
 
     def __getitem__(self, key):
         if isinstance(key, str):
             try:
                 idx = self._fields.index(key)
                 return tuple.__getitem__(self, idx)
-            except ValueError:
-                raise KeyError(f"Row has no field '{key}'")
+            except ValueError as err:
+                raise KeyError(f"Row has no field '{key}'") from err
         return tuple.__getitem__(self, key)
 
     def as_dict(self) -> dict[str, Any]:
         """Convert row to dictionary."""
-        return dict(zip(self._fields, self))
+        return dict(zip(self._fields, self, strict=False))
 
     def __repr__(self) -> str:
-        items = ", ".join(f"{k}={v!r}" for k, v in zip(self._fields, self))
+        items = ", ".join(f"{k}={v!r}" for k, v in zip(self._fields, self, strict=False))
         return f"Row({items})"
 
 
@@ -152,7 +155,7 @@ def dataclass_to_columns(klass: type[T]) -> list[tuple[str, str]]:
             # Optional[X] is Union[X, None]
             args = getattr(field_type, "__args__", ())
             if type(None) in args:
-                field_type = [a for a in args if a is not type(None)][0]
+                field_type = next(a for a in args if a is not type(None))
 
         sql_type = type_mapping.get(field_type, "STRING")
         columns.append((field.name, sql_type))

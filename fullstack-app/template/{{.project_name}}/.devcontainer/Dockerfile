@@ -11,67 +11,55 @@ ARG NODE_VERSION=22
 ARG PYTHON_VERSION=3.10
 ARG PNPM_VERSION=10
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    curl \
-    wget \
-    unzip \
-    jq \
-    libpq-dev \
-    postgresql-client \
-    && rm -rf /var/lib/apt/lists/*
+# Better error handling for piped commands (e.g. curl | bash)
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Install Node.js via NodeSource
-RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - \
-    && apt-get install -y nodejs \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install pnpm globally
-RUN npm install -g pnpm@${PNPM_VERSION}
-
-# Install Python via deadsnakes PPA
+# Install system dependencies, Node.js, and Python in a single layer
 RUN apt-get update \
-    && apt-get install -y software-properties-common \
+    && apt-get install -y --no-install-recommends \
+        build-essential curl wget unzip jq \
+        libpq-dev postgresql-client \
+        software-properties-common \
+    # Node.js via NodeSource
+    && curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    # Python via deadsnakes PPA
     && add-apt-repository -y ppa:deadsnakes/ppa \
     && apt-get update \
-    && apt-get install -y \
+    && apt-get install -y --no-install-recommends \
         python${PYTHON_VERSION} \
         python${PYTHON_VERSION}-venv \
         python${PYTHON_VERSION}-dev \
-    && rm -rf /var/lib/apt/lists/*
+    && update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 1 \
+    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTHON_VERSION} 1 \
+    # pnpm
+    && npm install -g pnpm@${PNPM_VERSION} \
+    # Cleanup
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Set Python 3.10 as default
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 1 \
-    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTHON_VERSION} 1
-
-# Install uv (fast Python package manager from Astral)
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.local/bin:/home/vscode/.local/bin:$PATH"
-
-# Install Databricks CLI
+# Install Databricks CLI (system-wide)
 RUN curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
 
 # Switch to vscode user for remaining setup
 USER vscode
 
-# Install uv for vscode user
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+# Install uv (fast Python package manager) and configure pnpm store
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
+    && pnpm config set store-dir /home/vscode/.local/share/pnpm
+ENV PATH="/home/vscode/.local/bin:$PATH"
 
-# Configure pnpm
-RUN pnpm config set store-dir /home/vscode/.local/share/pnpm
-
-# Set up bash history persistence
+# Set up bash history persistence and helpful aliases
 RUN mkdir -p /home/vscode/.bash_history_dir \
-    && echo 'export HISTFILE=/home/vscode/.bash_history_dir/.bash_history' >> /home/vscode/.bashrc \
-    && echo 'export HISTSIZE=10000' >> /home/vscode/.bashrc \
-    && echo 'export HISTFILESIZE=20000' >> /home/vscode/.bashrc
-
-# Add helpful aliases
-RUN echo 'alias dev="pnpm dev"' >> /home/vscode/.bashrc \
-    && echo 'alias build="pnpm build"' >> /home/vscode/.bashrc \
-    && echo 'alias lint="pnpm lint"' >> /home/vscode/.bashrc \
-    && echo 'alias db="databricks"' >> /home/vscode/.bashrc
+    && { \
+        echo 'export HISTFILE=/home/vscode/.bash_history_dir/.bash_history'; \
+        echo 'export HISTSIZE=10000'; \
+        echo 'export HISTFILESIZE=20000'; \
+        echo 'alias dev="pnpm dev"'; \
+        echo 'alias build="pnpm build"'; \
+        echo 'alias lint="pnpm lint"'; \
+        echo 'alias db="databricks"'; \
+    } >> /home/vscode/.bashrc
 
 # Working directory
 WORKDIR /workspace

@@ -8,6 +8,13 @@
       "order": 1,
       "pattern": "^[a-z0-9-]+$",
       "pattern_match_failure_message": "Project name must consist of lowercase letters, numbers, and hyphens only."
+    },
+    "use_lakebase": {
+      "type": "string",
+      "default": "yes",
+      "description": "Include Lakebase (PostgreSQL) database resource? (yes/no)",
+      "order": 2,
+      "enum": ["yes", "no"]
     }
   },
   "success_message": "\nYour fullstack bundle '{{.project_name}}' has been created!\n\nNext steps:\n  1. cd {{.project_name}}\n  2. ./scripts/setup.sh     # Install dependencies\n  3. ./scripts/dev.sh       # Start development servers\n  4. databricks bundle deploy  # Deploy to Databricks\n"
