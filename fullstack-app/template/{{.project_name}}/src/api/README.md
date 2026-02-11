@@ -48,12 +48,8 @@ DATABRICKS_TOKEN=dapi...
 DATABRICKS_WAREHOUSE=abc123
 
 # Lakebase/PostgreSQL (optional)
-PGHOST=your-lakebase-host
-PGPORT=5432
-PGDATABASE=databricks_postgres
-PGUSER=token
-PGPASSWORD=your_token
-PGSSLMODE=require
+INSTANCE_NAME=your-lakebase-instance
+
 # app settings
 DEBUG=false
 ```
@@ -94,8 +90,8 @@ if settings.is_deployed:
 # Get Databricks SDK config (handles per-user OAuth)
 config = settings.databricks_config
 
-# Get PostgreSQL config
-pg_config = settings.postgres_config
+# Lakebase instance name (resolved via SDK in DatabricksService)
+instance_name = settings.instance_name
 ```
 
 ### Adding New Endpoints

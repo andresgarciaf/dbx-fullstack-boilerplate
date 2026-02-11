@@ -15,9 +15,10 @@ from databricks.sdk.service.sql import Disposition
 from api.clients import (
     AsyncLakebaseBackend,
     LakebaseBackend,
+    OAuthTokenManager,
+    PostgresConfig,
     SqlBackend,
     StatementExecutionBackend,
-    StatementExecutionPgBackend,
     SyncLakebaseBackend,
 )
 from api.core import settings
@@ -92,25 +93,44 @@ class DatabricksService(GlobalContext):
         )
 
     @cached_property
+    def _pg_config(self) -> PostgresConfig:
+        """Resolve PostgreSQL config from Lakebase instance via SDK."""
+        instance = self.workspace_client.database.get_database_instance(
+            self._settings.instance_name
+        )
+        return PostgresConfig.from_instance(instance)
+
+    @cached_property
+    def _token_manager(self) -> OAuthTokenManager:
+        """Get OAuth token manager for Lakebase connections."""
+        return OAuthTokenManager.from_workspace_client(self.workspace_client)
+
+    @cached_property
     def lakebase_backend(self) -> SyncLakebaseBackend:
         """Get synchronous Lakebase (PostgreSQL) backend.
 
-        Uses StatementExecutionPgBackend factory which configures OAuth token
-        management via WorkspaceClient. PostgreSQL config comes from settings.
+        Resolves connection details from the Lakebase instance via SDK
+        and configures OAuth token management via WorkspaceClient.
         """
-        return StatementExecutionPgBackend.sync(self.workspace_client)
+        return SyncLakebaseBackend(
+            workspace_client=self.workspace_client,
+            pg_config=self._pg_config,
+            _token_manager=self._token_manager,
+        )
 
     @property
     def async_lakebase_backend(self) -> AsyncLakebaseBackend:
         """Get async Lakebase backend for high-performance queries.
 
-        Uses StatementExecutionPgBackend factory which configures OAuth token
-        management via WorkspaceClient. PostgreSQL config comes from settings.
+        Resolves connection details from the Lakebase instance via SDK
+        and configures OAuth token management via WorkspaceClient.
         Note: This is a property, not cached_property, because async
         backends may need fresh connections per request context.
         """
         if self._async_lakebase_backend is None:
-            self._async_lakebase_backend = StatementExecutionPgBackend.async_(
-                self.workspace_client
+            self._async_lakebase_backend = AsyncLakebaseBackend(
+                workspace_client=self.workspace_client,
+                pg_config=self._pg_config,
+                _token_manager=self._token_manager,
             )
         return self._async_lakebase_backend

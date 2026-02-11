@@ -3,9 +3,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    # Podman compatibility: map container user to host user
-    # This is ignored by Docker but required for rootless Podman
-    userns_mode: keep-id
     volumes:
       - ..:/workspace:cached,z
       # Persist VS Code extensions and server
@@ -17,7 +14,7 @@ services:
       - uv-cache:/home/vscode/.cache/uv:z
       # Persist bash history
       - bash-history:/home/vscode/.bash_history_dir:z
-    # Security options for Podman (ignored by Docker)
+    # Disable SELinux labeling (needed for Podman, ignored by Docker)
     security_opt:
       - label:disable
     environment:
@@ -31,17 +28,18 @@ services:
       - DATABRICKS_WAREHOUSE=${DATABRICKS_WAREHOUSE:-}
       - DATABRICKS_PROFILE=${DATABRICKS_PROFILE:-}
       # Lakebase/PostgreSQL (optional)
-      - PGHOST=${PGHOST:-}
-      - PGPORT=${PGPORT:-5432}
-      - PGDATABASE=${PGDATABASE:-}
-      - PGUSER=${PGUSER:-}
-      - PGPASSWORD=${PGPASSWORD:-}
-      - PGSSLMODE=${PGSSLMODE:-require}
+      - INSTANCE_NAME=${INSTANCE_NAME:-}
     ports:
       - "3000:3000"
       - "8000:8000"
+    # Use tini as PID 1 for proper signal handling
+    init: true
     # Keep container running
     command: sleep infinity
+
+# NOTE: Podman-specific settings (userns_mode: keep-id) are auto-generated
+# in docker-compose.override.yml by the init script. Do not add them here
+# as they cause Docker to fail.
 
 volumes:
   vscode-extensions:

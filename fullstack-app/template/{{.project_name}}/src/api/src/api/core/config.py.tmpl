@@ -2,13 +2,11 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from databricks.sdk.core import Config
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from api.core.context import get_user_token
-from api.clients.lakebase_backends import PostgresConfig
 
 # env file path
 ENV_FILE = Path(__file__).resolve().parents[5] / ".env"
@@ -39,11 +37,9 @@ class Settings(BaseSettings):
     databricks_token: str = ""
     databricks_profile: str = ""
     databricks_warehouse: str = ""
-    pghost:str = ""
-    pgport:str = "5432"
-    pgdatabase:str = ""
-    pguser:str = ""
-    pgsslmode:str = "require"
+
+    # Lakebase
+    instance_name: str = ""
 
     # Environment
     @property
@@ -77,34 +73,6 @@ class Settings(BaseSettings):
         raise ValueError(
             "Databricks config not available. Set DATABRICKS_PROFILE or "
             "DATABRICKS_HOST + DATABRICKS_TOKEN in .env file."
-        )
-
-    @property
-    def postgres_config(self) -> "PostgresConfig":
-        """Get PostgreSQL configuration for Lakebase.
-
-        In deployed mode: PostgresConfig auto-load from PG* env vars
-        set by Databricks Apps resource binding.
-
-        In local mode: passes .env settings explicitly, with PostgresConfig
-        falling back to env vars for any missing values.
-
-        Note: Password/OAuth token is managed by OAuthTokenManager, not stored
-        in PostgresConfig.
-        """
-
-        if self.is_deployed:
-            # Let PostgresConfig auto-load from PG* environment variables
-            return PostgresConfig()
-
-        # Local development: pass .env settings explicitly
-        # PostgresConfig will use these and fall back to env vars for missing
-        return PostgresConfig(
-            host=self.pghost or None,
-            port=self.pgport or None,
-            database=self.pgdatabase or None,
-            user=self.pguser or None,
-            sslmode=self.pgsslmode or None,
         )
 
 

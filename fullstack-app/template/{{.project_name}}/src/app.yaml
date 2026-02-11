@@ -1,7 +1,0 @@
-command: [
-  "./scripts/start.sh"
-]
-
-env:
-  - name: ENVIRONMENT
-    value: "production"

@@ -60,11 +60,7 @@ DATABRICKS_WAREHOUSE=abc123def456
 
 ### Optional (Lakebase)
 ```
-PGHOST=your-lakebase-host
-PGPORT=5432
-PGDATABASE=databricks_postgres
-PGUSER=token
-PGPASSWORD=your_oauth_token
+INSTANCE_NAME=your-lakebase-instance
 ```
 
 ## Testing

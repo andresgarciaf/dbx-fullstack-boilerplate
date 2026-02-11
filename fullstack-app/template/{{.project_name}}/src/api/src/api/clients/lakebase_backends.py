@@ -7,19 +7,23 @@ Lightweight implementation for executing queries against Databricks Lakebase
 from __future__ import annotations
 
 import abc
+import contextlib
 import logging
 import os
 import time
-from collections.abc import Iterable, Iterator
 from dataclasses import fields, is_dataclass
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import psycopg
 
 from api.clients.sql_core import Row, dataclass_to_columns
 from api.clients.sql_escapes import escape_pg_full_name, escape_pg_name
 
-from databricks.sdk import WorkspaceClient
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
+    from databricks.sdk import WorkspaceClient
+    from databricks.sdk.service.database import DatabaseInstance
 
 logger = logging.getLogger(__name__)
 
@@ -29,118 +33,27 @@ T = TypeVar("T")
 TOKEN_REFRESH_INTERVAL = 900
 
 
-class PostgresConfigAttribute:
-    """Configuration attribute metadata and descriptor for PostgresConfig."""
-
-    name: str = None
-    transform: type = str
-
-    def __init__(self, env: str = None, default: Any = None, sensitive: bool = False):
-        self.env = env
-        self.default = default
-        self.sensitive = sensitive
-
-    def __get__(self, cfg: "PostgresConfig", owner):
-        if cfg is None:
-            return None
-        return cfg._inner.get(self.name, self.default)
-
-    def __set__(self, cfg: "PostgresConfig", value: Any):
-        if value is not None:
-            cfg._inner[self.name] = self.transform(value)
-
-    def __repr__(self) -> str:
-        return f"<PostgresConfigAttribute '{self.name}' {self.transform.__name__}>"
-
-
 class PostgresConfig:
-    """PostgreSQL connection configuration.
+    """PostgreSQL connection configuration for Lakebase."""
 
-    Inspired by Databricks SDK Config pattern. Automatically loads from
-    environment variables when not explicitly provided.
-
-    Environment variables (set by Databricks Apps resource binding):
-        PGHOST: PostgreSQL host
-        PGPORT: Port (default: 5432)
-        PGDATABASE: Database name (default: databricks_postgres)
-        PGUSER: Username (default: token)
-        PGSSLMODE: SSL mode (default: require)
-
-    Note: Password/OAuth token is handled by OAuthTokenManager, not stored here.
-
-    Usage:
-        # Load from environment
-        config = PostgresConfig()
-
-        # Explicit configuration
-        config = PostgresConfig(host="localhost", database="mydb")
-
-        # Mix of explicit and environment
-        config = PostgresConfig(host="localhost")  # other values from env
-    """
-
-    host: str = PostgresConfigAttribute(env="PGHOST")
-    port: str = PostgresConfigAttribute(env="PGPORT", default="5432")
-    database: str = PostgresConfigAttribute(
-        env="PGDATABASE", default="databricks_postgres"
-    )
-    user: str = PostgresConfigAttribute(env="PGUSER", default="token")
-    sslmode: str = PostgresConfigAttribute(env="PGSSLMODE", default="require")
-
-    def __init__(self, **kwargs):
-        self._inner: dict[str, Any] = {}
-
-        # Set explicit values first
-        self._set_inner_config(kwargs)
-
-        # Load from environment for unset values
-        self._load_from_env()
-
-        # Validate required fields
-        self._validate()
-
-    def _set_inner_config(self, keyword_args: dict[str, Any]):
-        """Set configuration from keyword arguments."""
-        for attr in self.attributes():
-            if attr.name not in keyword_args:
-                continue
-            value = keyword_args.get(attr.name)
-            if value is not None:
-                setattr(self, attr.name, value)
-
-    def _load_from_env(self):
-        """Load configuration from environment variables."""
-        for attr in self.attributes():
-            if not attr.env:
-                continue
-            if attr.name in self._inner:
-                continue
-            value = os.environ.get(attr.env)
-            if value:
-                setattr(self, attr.name, value)
-                logger.debug(f"Loaded {attr.name} from {attr.env}")
-
-    def _validate(self):
-        """Validate required configuration."""
-        if not self.host:
-            raise ValueError(
-                "PostgreSQL host not configured. Set PGHOST environment variable "
-                "or pass host parameter explicitly."
-            )
+    def __init__(
+        self,
+        host: str,
+        port: str = "5432",
+        database: str = "databricks_postgres",
+        user: str = "token",
+        sslmode: str = "require",
+    ):
+        self.host = host
+        self.port = port
+        self.database = database
+        self.user = user
+        self.sslmode = sslmode
 
     @classmethod
-    def attributes(cls) -> Iterable[PostgresConfigAttribute]:
-        """Returns list of configuration attributes."""
-        if hasattr(cls, "_attributes"):
-            return cls._attributes
-        attrs = []
-        for name, v in cls.__dict__.items():
-            if not isinstance(v, PostgresConfigAttribute):
-                continue
-            v.name = name
-            attrs.append(v)
-        cls._attributes = attrs
-        return cls._attributes
+    def from_instance(cls, instance: DatabaseInstance) -> PostgresConfig:
+        """Create config from a Databricks Lakebase DatabaseInstance."""
+        return cls(host=instance.read_write_dns)
 
     def build_connection_string(self, password: str) -> str:
         """Build PostgreSQL connection string.
@@ -148,29 +61,10 @@ class PostgresConfig:
         Args:
             password: OAuth token for authentication (required).
         """
-        return (
-            f"postgresql://{self.user}:{password}"
-            f"@{self.host}:{self.port}/{self.database}"
-            f"?sslmode={self.sslmode}"
-        )
-
-    def as_dict(self) -> dict[str, Any]:
-        """Return configuration as dictionary."""
-        return {attr.name: getattr(self, attr.name) for attr in self.attributes()}
-
-    def debug_string(self) -> str:
-        """Returns log-friendly representation of configured attributes."""
-        parts = []
-        for attr in self.attributes():
-            value = getattr(self, attr.name)
-            if value is None:
-                continue
-            safe = "***" if attr.sensitive else str(value)
-            parts.append(f"{attr.name}={safe}")
-        return f"PostgresConfig: {', '.join(parts)}"
+        return f"postgresql://{self.user}:{password}@{self.host}:{self.port}/{self.database}?sslmode={self.sslmode}"
 
     def __repr__(self) -> str:
-        return f"<{self.debug_string()}>"
+        return f"<PostgresConfig host={self.host} port={self.port} database={self.database}>"
 
 
 class OAuthTokenManager:
@@ -196,9 +90,7 @@ class OAuthTokenManager:
         self._use_env_fallback = True
 
     @classmethod
-    def from_workspace_client(
-        cls, workspace_client: WorkspaceClient
-    ) -> "OAuthTokenManager":
+    def from_workspace_client(cls, workspace_client: WorkspaceClient) -> OAuthTokenManager:
         """Create token manager that exclusively uses WorkspaceClient for tokens.
 
         Unlike default constructor, does NOT fall back to environment variables.
@@ -207,7 +99,7 @@ class OAuthTokenManager:
         manager._use_env_fallback = False
         return manager
 
-    def set_workspace_client(self, workspace_client: "WorkspaceClient") -> None:
+    def set_workspace_client(self, workspace_client: WorkspaceClient) -> None:
         """Set or update the WorkspaceClient."""
         self._workspace_client = workspace_client
 
@@ -215,10 +107,7 @@ class OAuthTokenManager:
         """Get a valid OAuth token, refreshing if needed."""
         current_time = time.time()
 
-        if (
-            self._token is None
-            or (current_time - self._last_refresh) > self._refresh_interval
-        ):
+        if self._token is None or (current_time - self._last_refresh) > self._refresh_interval:
             self._refresh_token()
 
         return self._token or ""
@@ -242,9 +131,7 @@ class OAuthTokenManager:
                 if oauth_token and oauth_token.access_token:
                     self._token = oauth_token.access_token
                     self._last_refresh = time.time()
-                    logger.info(
-                        "Lakebase token refreshed via WorkspaceClient.oauth_token()"
-                    )
+                    logger.info("Lakebase token refreshed via WorkspaceClient.oauth_token()")
                     return True
             except Exception as e:
                 logger.debug(f"oauth_token() failed: {e}")
@@ -301,9 +188,9 @@ class LakebaseBackend(abc.ABC):
     _connection_string: str | None = None
 
     def _get_pg_config(self) -> PostgresConfig:
-        """Get PostgreSQL configuration (cached)."""
+        """Get PostgreSQL configuration (must be set by caller)."""
         if self._pg_config is None:
-            self._pg_config = PostgresConfig()
+            raise ValueError("pg_config not set. Pass pg_config when constructing the backend.")
         return self._pg_config
 
     def _build_connection_string(self) -> str:
@@ -418,9 +305,7 @@ class SyncLakebaseBackend(LakebaseBackend):
         _token_manager: OAuthTokenManager | None = None,
     ):
         self._connection_string = connection_string
-        self._token_manager = _token_manager or OAuthTokenManager(
-            workspace_client=workspace_client
-        )
+        self._token_manager = _token_manager or OAuthTokenManager(workspace_client=workspace_client)
         self._pg_config: PostgresConfig | None = pg_config
         self._conn = None
 
@@ -436,10 +321,8 @@ class SyncLakebaseBackend(LakebaseBackend):
     def _reconnect(self):
         """Force reconnection with fresh token."""
         if self._conn:
-            try:
+            with contextlib.suppress(Exception):
                 self._conn.close()
-            except Exception:
-                pass
         self._conn = None
         self._token_manager.invalidate()
 
@@ -515,9 +398,7 @@ class AsyncLakebaseBackend(LakebaseBackend):
         _token_manager: OAuthTokenManager | None = None,
     ):
         self._pool = pool
-        self._token_manager = _token_manager or OAuthTokenManager(
-            workspace_client=workspace_client
-        )
+        self._token_manager = _token_manager or OAuthTokenManager(workspace_client=workspace_client)
         self._pg_config: PostgresConfig | None = pg_config
         self._connection_string: str | None = None
 
@@ -531,48 +412,42 @@ class AsyncLakebaseBackend(LakebaseBackend):
     async def execute_async(self, sql: str, params: tuple | None = None) -> int:
         """Execute a SQL statement asynchronously with auto-retry."""
         try:
-            async with self._get_connection() as conn:
-                async with conn.cursor() as cur:
-                    await cur.execute(sql, params)
-                    await conn.commit()
-                    return cur.rowcount
+            async with self._get_connection() as conn, conn.cursor() as cur:
+                await cur.execute(sql, params)
+                await conn.commit()
+                return cur.rowcount
         except Exception as e:
             if self._is_auth_error(e):
                 logger.warning("Auth error, refreshing token and retrying...")
                 self._token_manager.invalidate()
-                async with self._get_connection() as conn:
-                    async with conn.cursor() as cur:
-                        await cur.execute(sql, params)
-                        await conn.commit()
-                        return cur.rowcount
+                async with self._get_connection() as conn, conn.cursor() as cur:
+                    await cur.execute(sql, params)
+                    await conn.commit()
+                    return cur.rowcount
             raise
 
     async def fetch_async(self, sql: str, params: tuple | None = None) -> list[Row]:
         """Execute a query and return Row objects."""
         try:
-            async with self._get_connection() as conn:
-                async with conn.cursor() as cur:
+            async with self._get_connection() as conn, conn.cursor() as cur:
+                await cur.execute(sql, params)
+                col_names = [desc[0] for desc in cur.description]
+                RowClass = Row.factory(col_names)
+                rows = await cur.fetchall()
+                return [RowClass(*raw_row) for raw_row in rows]
+        except Exception as e:
+            if self._is_auth_error(e):
+                logger.warning("Auth error, refreshing token and retrying...")
+                self._token_manager.invalidate()
+                async with self._get_connection() as conn, conn.cursor() as cur:
                     await cur.execute(sql, params)
                     col_names = [desc[0] for desc in cur.description]
                     RowClass = Row.factory(col_names)
                     rows = await cur.fetchall()
                     return [RowClass(*raw_row) for raw_row in rows]
-        except Exception as e:
-            if self._is_auth_error(e):
-                logger.warning("Auth error, refreshing token and retrying...")
-                self._token_manager.invalidate()
-                async with self._get_connection() as conn:
-                    async with conn.cursor() as cur:
-                        await cur.execute(sql, params)
-                        col_names = [desc[0] for desc in cur.description]
-                        RowClass = Row.factory(col_names)
-                        rows = await cur.fetchall()
-                        return [RowClass(*raw_row) for raw_row in rows]
             raise
 
-    async def fetch_one_async(
-        self, sql: str, params: tuple | None = None
-    ) -> Row | None:
+    async def fetch_one_async(self, sql: str, params: tuple | None = None) -> Row | None:
         """Fetch first row asynchronously."""
         rows = await self.fetch_async(sql, params)
         return rows[0] if rows else None
@@ -594,69 +469,3 @@ class AsyncLakebaseBackend(LakebaseBackend):
         """Close the pool if present."""
         if self._pool:
             await self._pool.close()
-
-
-class StatementExecutionPgBackend:
-    """Factory for creating Lakebase backends with workspace authentication.
-
-    Creates sync or async PostgreSQL backends using WorkspaceClient for
-    OAuth token management. Configuration is retrieved internally from settings.
-
-    Usage:
-        from api.clients import StatementExecutionPgBackend
-
-        # Create sync backend
-        backend = StatementExecutionPgBackend.sync(workspace_client)
-
-        # Create async backend
-        async_backend = StatementExecutionPgBackend.async_(workspace_client)
-    """
-
-    def __new__(cls, *args, **kwargs):
-        """Prevent direct instantiation."""
-        raise TypeError(
-            "StatementExecutionPgBackend cannot be instantiated directly. "
-            "Use .sync() or .async_() instead."
-        )
-
-    @classmethod
-    def sync(cls, workspace_client: WorkspaceClient) -> SyncLakebaseBackend:
-        """Create synchronous Lakebase backend.
-
-        Args:
-            workspace_client: Databricks WorkspaceClient for token refresh
-
-        Returns:
-            Configured SyncLakebaseBackend instance
-        """
-        from api.core import settings
-
-        pg_config = settings.postgres_config
-        token_manager = OAuthTokenManager.from_workspace_client(workspace_client)
-
-        return SyncLakebaseBackend(
-            workspace_client=workspace_client,
-            pg_config=pg_config,
-            _token_manager=token_manager,
-        )
-
-    @classmethod
-    def async_(cls, workspace_client: WorkspaceClient) -> AsyncLakebaseBackend:
-        """Create asynchronous Lakebase backend.
-
-        Args:
-            workspace_client: Databricks WorkspaceClient for token refresh
-
-        Returns:
-            Configured AsyncLakebaseBackend instance
-        """
-        from api.core import settings
-
-        pg_config = settings.postgres_config
-        token_manager = OAuthTokenManager.from_workspace_client(workspace_client)
-
-        return AsyncLakebaseBackend(
-            workspace_client=workspace_client,
-            pg_config=pg_config,
-            _token_manager=token_manager,
-        )

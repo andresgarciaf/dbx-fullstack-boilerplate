@@ -73,12 +73,7 @@ DATABRICKS_PROFILE=.databrickscfg-profile
 
 Optional (for Lakebase):
 ```env
-PGHOST=your-lakebase-host
-PGPORT=5432
-PGDATABASE=databricks_postgres
-PGUSER=token
-PGPASSWORD=your_token
-PGSSLMODE=require
+INSTANCE_NAME=your-lakebase-instance
 ```
 
 ## Build for Production

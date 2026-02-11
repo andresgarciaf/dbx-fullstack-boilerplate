@@ -4,11 +4,13 @@ resources:
       name: {{.project_name}}
       source_code_path: ../src
       description: "Fullstack application with Next.js frontend and FastAPI backend."
+{{- if eq .use_lakebase "yes"}}
       resources:
         - database:
             instance_name: ${resources.database_instances.app_pg_instance.name}
             database_name: ${resources.database_catalogs.app_pg_instance_catalog.database_name}
             permission: CAN_CONNECT_AND_CREATE
+{{- end}}
       config:
         command:
           - "./scripts/start.sh"
@@ -16,3 +18,7 @@ resources:
         env:
           - name: ENVIRONMENT
             value: "development"
+{{- if eq .use_lakebase "yes"}}
+          - name: INSTANCE_NAME
+            value: ${resources.database_instances.app_pg_instance.name}
+{{- end}}

@@ -6,6 +6,14 @@ Lightweight implementations for SQL execution with:
 - AsyncLakebaseBackend: Async PostgreSQL/Lakebase with pooling
 """
 
+from api.clients.lakebase_backends import (
+    AsyncLakebaseBackend,
+    LakebaseBackend,
+    OAuthTokenManager,
+    PostgresConfig,
+    SyncLakebaseBackend,
+)
+from api.clients.sql_backends import SqlBackend, StatementExecutionBackend
 from api.clients.sql_core import (
     Row,
     dataclass_to_columns,
@@ -13,42 +21,32 @@ from api.clients.sql_core import (
     rows_to_dataclass,
 )
 from api.clients.sql_escapes import (
-    escape_name,
     escape_full_name,
-    escape_pg_name,
+    escape_name,
     escape_pg_full_name,
+    escape_pg_name,
     escape_value,
-)
-from api.clients.sql_backends import SqlBackend, StatementExecutionBackend
-from api.clients.lakebase_backends import (
-    LakebaseBackend,
-    SyncLakebaseBackend,
-    AsyncLakebaseBackend,
-    OAuthTokenManager,
-    PostgresConfig,
-    StatementExecutionPgBackend,
 )
 
 __all__ = [
+    "AsyncLakebaseBackend",
+    # Lakebase backends
+    "LakebaseBackend",
+    "OAuthTokenManager",
+    "PostgresConfig",
     # Core types
     "Row",
-    "dataclass_to_columns",
-    "row_to_dataclass",
-    "rows_to_dataclass",
-    # Escaping
-    "escape_name",
-    "escape_full_name",
-    "escape_pg_name",
-    "escape_pg_full_name",
-    "escape_value",
     # Databricks SQL backends
     "SqlBackend",
     "StatementExecutionBackend",
-    # Lakebase backends
-    "LakebaseBackend",
     "SyncLakebaseBackend",
-    "AsyncLakebaseBackend",
-    "OAuthTokenManager",
-    "PostgresConfig",
-    "StatementExecutionPgBackend",
+    "dataclass_to_columns",
+    "escape_full_name",
+    # Escaping
+    "escape_name",
+    "escape_pg_full_name",
+    "escape_pg_name",
+    "escape_value",
+    "row_to_dataclass",
+    "rows_to_dataclass",
 ]

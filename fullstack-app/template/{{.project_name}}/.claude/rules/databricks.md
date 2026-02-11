@@ -3,7 +3,7 @@
 ## Configuration
 
 - Use `settings.databricks_config` for WorkspaceClient config
-- Use `settings.postgres_config` for Lakebase config
+- Use `settings.instance_name` for Lakebase instance name
 - Check `settings.is_deployed` for environment detection
 
 ```python
@@ -12,8 +12,8 @@ from api.core import settings
 # Get configured WorkspaceClient
 ws = WorkspaceClient(config=settings.databricks_config)
 
-# Get PostgreSQL config for Lakebase
-pg_config = settings.postgres_config
+# Lakebase config is resolved via SDK in DatabricksService
+# using settings.instance_name
 ```
 
 ## SQL Safety
