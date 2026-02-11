@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     databricks_profile: str = ""
     databricks_warehouse: str = ""
 
+    # OAuth M2M (Service Principal) for deployed Databricks Apps
+    databricks_client_id: str = ""
+    databricks_client_secret: str = ""
+
     # Lakebase
     instance_name: str = ""
 
@@ -57,7 +61,13 @@ class Settings(BaseSettings):
         In local mode: uses settings from .env file (host/token or profile).
         """
         if self.is_deployed:
-            # Use per-user token from request header (set by middleware)
+            # OAuth M2M (Service Principal) — highest priority for app identity
+            if self.databricks_client_id and self.databricks_client_secret:
+                return Config(
+                    client_id=self.databricks_client_id,
+                    client_secret=self.databricks_client_secret,
+                )
+            # Per-user token from request header (set by middleware)
             token = get_user_token()
             if token:
                 return Config(token=token)

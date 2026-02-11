@@ -7,9 +7,12 @@ Lightweight implementation for executing queries against Databricks Lakebase
 from __future__ import annotations
 
 import abc
+import asyncio
 import contextlib
 import logging
 import os
+import socket
+import subprocess
 import time
 from dataclasses import fields, is_dataclass
 from typing import TYPE_CHECKING, Any, TypeVar
@@ -29,8 +32,30 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
-# Token refresh interval (15 minutes before expiry)
-TOKEN_REFRESH_INTERVAL = 900
+# Token refresh interval (50 minutes for 1-hour credential TTL)
+TOKEN_REFRESH_INTERVAL = 50 * 60
+
+
+def resolve_hostname(hostname: str) -> str | None:
+    """Resolve hostname to IP. Falls back to dig on macOS DNS failures."""
+    try:
+        result = socket.getaddrinfo(hostname, 5432)
+        if result:
+            return result[0][4][0]
+    except socket.gaierror:
+        pass
+    try:
+        result = subprocess.run(
+            ["dig", "+short", hostname, "A"],
+            capture_output=True, text=True, timeout=10,
+        )
+        ips = [line for line in result.stdout.strip().split("\n") if line and line[0].isdigit()]
+        if ips:
+            logger.info("Resolved %s -> %s via dig (Python DNS failed)", hostname, ips[0])
+            return ips[0]
+    except Exception as e:
+        logger.warning("dig resolution failed for %s: %s", hostname, e)
+    return None
 
 
 class PostgresConfig:
@@ -43,17 +68,20 @@ class PostgresConfig:
         database: str = "databricks_postgres",
         user: str = "token",
         sslmode: str = "require",
+        hostaddr: str | None = None,
     ):
         self.host = host
         self.port = port
         self.database = database
         self.user = user
         self.sslmode = sslmode
+        self.hostaddr = hostaddr
 
     @classmethod
     def from_instance(cls, instance: DatabaseInstance) -> PostgresConfig:
         """Create config from a Databricks Lakebase DatabaseInstance."""
-        return cls(host=instance.read_write_dns)
+        hostaddr = resolve_hostname(instance.read_write_dns)
+        return cls(host=instance.read_write_dns, hostaddr=hostaddr)
 
     def build_connection_string(self, password: str) -> str:
         """Build PostgreSQL connection string.
@@ -61,7 +89,10 @@ class PostgresConfig:
         Args:
             password: OAuth token for authentication (required).
         """
-        return f"postgresql://{self.user}:{password}@{self.host}:{self.port}/{self.database}?sslmode={self.sslmode}"
+        conn_str = f"postgresql://{self.user}:{password}@{self.host}:{self.port}/{self.database}?sslmode={self.sslmode}"
+        if self.hostaddr:
+            conn_str += f"&hostaddr={self.hostaddr}"
+        return conn_str
 
     def __repr__(self) -> str:
         return f"<PostgresConfig host={self.host} port={self.port} database={self.database}>"
@@ -75,27 +106,35 @@ class OAuthTokenManager:
 
     Args:
         workspace_client: Databricks WorkspaceClient for token refresh
-        refresh_interval: Seconds between token refreshes (default: 900)
+        refresh_interval: Seconds between token refreshes (default: 50 min)
+        instance_name: Lakebase instance name for generate_database_credential()
     """
 
     def __init__(
         self,
         workspace_client: WorkspaceClient | None = None,
         refresh_interval: int = TOKEN_REFRESH_INTERVAL,
+        instance_name: str | None = None,
     ):
         self._token: str | None = None
         self._last_refresh: float = 0
         self._refresh_interval = refresh_interval
         self._workspace_client = workspace_client
+        self._instance_name = instance_name
         self._use_env_fallback = True
+        self._refresh_task: asyncio.Task | None = None
 
     @classmethod
-    def from_workspace_client(cls, workspace_client: WorkspaceClient) -> OAuthTokenManager:
+    def from_workspace_client(
+        cls,
+        workspace_client: WorkspaceClient,
+        instance_name: str | None = None,
+    ) -> OAuthTokenManager:
         """Create token manager that exclusively uses WorkspaceClient for tokens.
 
         Unlike default constructor, does NOT fall back to environment variables.
         """
-        manager = cls(workspace_client=workspace_client)
+        manager = cls(workspace_client=workspace_client, instance_name=instance_name)
         manager._use_env_fallback = False
         return manager
 
@@ -116,16 +155,34 @@ class OAuthTokenManager:
         """Refresh the OAuth token.
 
         Tries multiple methods in order:
-        1. WorkspaceClient.config.oauth_token()
-        2. WorkspaceClient header_factory
-        3. PGPASSWORD environment variable (if _use_env_fallback is True)
-        4. DATABRICKS_TOKEN environment variable (if _use_env_fallback is True)
+        1. generate_database_credential() — dedicated Lakebase credential API
+        2. WorkspaceClient.config.oauth_token()
+        3. WorkspaceClient header_factory
+        4. PGPASSWORD environment variable (if _use_env_fallback is True)
+        5. DATABRICKS_TOKEN environment variable (if _use_env_fallback is True)
         """
         logger.debug("Refreshing Lakebase OAuth token...")
 
-        # Method 1: Use provided WorkspaceClient
         ws = self._workspace_client
         if ws:
+            # Method 1: Dedicated Lakebase credential API (properly scoped, 1-hour TTL)
+            if self._instance_name:
+                try:
+                    import uuid
+
+                    cred = ws.database.generate_database_credential(
+                        request_id=str(uuid.uuid4()),
+                        instance_names=[self._instance_name],
+                    )
+                    if cred and cred.access_token:
+                        self._token = cred.access_token
+                        self._last_refresh = time.time()
+                        logger.info("Lakebase token refreshed via generate_database_credential()")
+                        return True
+                except Exception as e:
+                    logger.debug("generate_database_credential() failed: %s", e)
+
+            # Method 2: WorkspaceClient OAuth token
             try:
                 oauth_token = ws.config.oauth_token()
                 if oauth_token and oauth_token.access_token:
@@ -134,9 +191,9 @@ class OAuthTokenManager:
                     logger.info("Lakebase token refreshed via WorkspaceClient.oauth_token()")
                     return True
             except Exception as e:
-                logger.debug(f"oauth_token() failed: {e}")
+                logger.debug("oauth_token() failed: %s", e)
 
-            # Try header_factory as fallback
+            # Method 3: header_factory as fallback
             try:
                 if hasattr(ws.config, "header_factory") and ws.config.header_factory:
                     headers = ws.config.header_factory()
@@ -147,11 +204,11 @@ class OAuthTokenManager:
                         logger.info("Lakebase token refreshed via header_factory")
                         return True
             except Exception as e:
-                logger.debug(f"header_factory failed: {e}")
+                logger.debug("header_factory failed: %s", e)
 
         # Environment fallbacks (only if enabled)
         if self._use_env_fallback:
-            # Method 2: PGPASSWORD from environment (set by Databricks Apps)
+            # Method 4: PGPASSWORD from environment (set by Databricks Apps)
             pg_password = os.environ.get("PGPASSWORD")
             if pg_password and len(pg_password) > 20:
                 self._token = pg_password
@@ -159,7 +216,7 @@ class OAuthTokenManager:
                 logger.info("Using PGPASSWORD from environment")
                 return True
 
-            # Method 3: DATABRICKS_TOKEN
+            # Method 5: DATABRICKS_TOKEN
             db_token = os.environ.get("DATABRICKS_TOKEN")
             if db_token:
                 self._token = db_token
@@ -173,6 +230,33 @@ class OAuthTokenManager:
     def invalidate(self) -> None:
         """Invalidate current token to force refresh on next get."""
         self._last_refresh = 0
+
+    async def start_background_refresh(self) -> None:
+        """Start background token refresh loop."""
+        if self._refresh_task is not None:
+            return
+        # Do initial refresh synchronously
+        self._refresh_token()
+        self._refresh_task = asyncio.create_task(self._background_refresh_loop())
+
+    async def _background_refresh_loop(self) -> None:
+        """Background loop: refresh token every 50 minutes."""
+        while True:
+            try:
+                await asyncio.sleep(50 * 60)
+                await asyncio.to_thread(self._refresh_token)
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error("Error in token refresh loop: %s", e)
+
+    async def stop_background_refresh(self) -> None:
+        """Stop the background refresh task."""
+        if self._refresh_task:
+            self._refresh_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._refresh_task
+            self._refresh_task = None
 
 
 class LakebaseBackend(abc.ABC):

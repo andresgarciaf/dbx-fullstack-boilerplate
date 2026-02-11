@@ -56,7 +56,23 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Startup
     configure_logging(level="DEBUG" if settings.debug else "INFO")
     logger.info("Application starting up...")
+
+    # Start background token refresh if Lakebase is configured
+    _service = None
+    if settings.instance_name:
+        from api.services import DatabricksService
+
+        _service = DatabricksService()
+        await _service.token_manager.start_background_refresh()
+        logger.info("Background token refresh started for Lakebase instance: %s", settings.instance_name)
+
     yield
+
+    # Stop background token refresh
+    if _service is not None:
+        await _service.token_manager.stop_background_refresh()
+        logger.info("Background token refresh stopped")
+
     # Shutdown (Databricks Apps has 15s limit, so we use short timeouts)
     logger.info("Shutdown initiated...")
     for ws in manager.active_connections[:]:
