@@ -13,11 +13,10 @@ This is a fullstack Databricks application with:
 ```
 ├── src/
 │   ├── api/                    # Python FastAPI backend
-│   │   └── src/api/
-│   │       ├── clients/        # SQL backends (Databricks, Lakebase)
-│   │       ├── core/           # Config, middleware, context
-│   │       ├── routers/        # API endpoints
-│   │       └── services/       # Business logic
+│   │   ├── clients/            # SQL backends (Databricks, Lakebase)
+│   │   ├── core/               # Config, middleware, context
+│   │   ├── routers/            # API endpoints
+│   │   └── services/           # Business logic
 │   └── web/                    # React TypeScript frontend
 │       └── src/
 │           ├── components/     # React components
@@ -41,8 +40,8 @@ pnpm build            # Build for production
 
 # Linting
 pnpm lint             # Run linters
-ruff check src/api    # Python linting
-ruff format src/api   # Python formatting
+ruff check .          # Python linting (from src/api/)
+ruff format .         # Python formatting (from src/api/)
 
 # Databricks
 databricks bundle deploy        # Deploy to Databricks

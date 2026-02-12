@@ -33,7 +33,7 @@ cd src/api
 uv sync
 
 # Run development server
-uv run uvicorn api.main:app --reload --port 8000
+uv run uvicorn main:app --reload --port 8000
 ```
 
 ## Configuration
@@ -61,7 +61,7 @@ DEBUG=false
 Centralized access to all Databricks resources:
 
 ```python
-from api.services import DatabricksService
+from services import DatabricksService
 
 service = DatabricksService()
 
@@ -80,7 +80,7 @@ user = service.workspace_client.current_user.me()
 Access configuration anywhere:
 
 ```python
-from api.core import settings
+from core import settings
 
 # Check environment
 if settings.is_deployed:
@@ -112,7 +112,7 @@ async def get_current_user():
 2. Include it in `main.py`:
 
 ```python
-from .routers import users
+from routers import users
 
 api_router.include_router(users.router)
 ```
@@ -122,7 +122,7 @@ api_router.include_router(users.router)
 ### StatementExecutionBackend (Databricks SQL)
 
 ```python
-from api.clients import StatementExecutionBackend
+from clients import StatementExecutionBackend
 
 backend = StatementExecutionBackend(ws, warehouse_id)
 rows = backend.fetch("SELECT * FROM table")
@@ -131,7 +131,7 @@ rows = backend.fetch("SELECT * FROM table")
 ### SyncLakebaseBackend (PostgreSQL)
 
 ```python
-from api.clients import SyncLakebaseBackend, PostgresConfig
+from clients import SyncLakebaseBackend, PostgresConfig
 
 config = PostgresConfig(host="localhost", database="mydb")
 backend = SyncLakebaseBackend(workspace_client=ws, pg_config=config)

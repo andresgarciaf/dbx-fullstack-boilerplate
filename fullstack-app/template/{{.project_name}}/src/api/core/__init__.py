@@ -1,7 +1,7 @@
 """Core module for configuration, context, middleware, and errors."""
 
-from api.core.config import settings
-from api.core.context import (
+from core.config import settings
+from core.context import (
     clear_request_id,
     clear_user_token,
     get_request_id,
@@ -9,7 +9,7 @@ from api.core.context import (
     set_request_id,
     set_user_token,
 )
-from api.core.errors import (
+from core.errors import (
     AppError,
     AuthenticationError,
     AuthorizationError,
@@ -22,8 +22,8 @@ from api.core.errors import (
     ServiceUnavailableError,
     ValidationError,
 )
-from api.core.logging_config import configure_logging
-from api.core.middleware import RequestContextMiddleware
+from core.logging_config import configure_logging
+from core.middleware import RequestContextMiddleware
 
 __all__ = [
     # Errors

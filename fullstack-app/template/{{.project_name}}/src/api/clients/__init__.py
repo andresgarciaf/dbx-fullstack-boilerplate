@@ -6,21 +6,21 @@ Lightweight implementations for SQL execution with:
 - AsyncLakebaseBackend: Async PostgreSQL/Lakebase with pooling
 """
 
-from api.clients.lakebase_backends import (
+from clients.lakebase_backends import (
     AsyncLakebaseBackend,
     LakebaseBackend,
     OAuthTokenManager,
     PostgresConfig,
     SyncLakebaseBackend,
 )
-from api.clients.sql_backends import SqlBackend, StatementExecutionBackend
-from api.clients.sql_core import (
+from clients.sql_backends import SqlBackend, StatementExecutionBackend
+from clients.sql_core import (
     Row,
     dataclass_to_columns,
     row_to_dataclass,
     rows_to_dataclass,
 )
-from api.clients.sql_escapes import (
+from clients.sql_escapes import (
     escape_full_name,
     escape_name,
     escape_pg_full_name,

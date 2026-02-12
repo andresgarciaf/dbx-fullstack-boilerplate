@@ -35,8 +35,8 @@ from fastapi import FastAPI, APIRouter
 from pydantic import BaseModel
 
 # Local
-from api.core import settings
-from api.clients import SqlBackend
+from core import settings
+from clients import SqlBackend
 
 # Type checking only (avoid circular imports)
 if TYPE_CHECKING:

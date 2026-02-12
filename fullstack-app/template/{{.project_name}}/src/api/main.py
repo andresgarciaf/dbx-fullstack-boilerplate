@@ -11,11 +11,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from api.core.config import settings
-from api.core.errors import AppError
-from api.core.logging_config import configure_logging
-from api.core.middleware import RequestContextMiddleware
-from api.routers import health
+from core.config import settings
+from core.errors import AppError
+from core.logging_config import configure_logging
+from core.middleware import RequestContextMiddleware
+from routers import health
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
@@ -60,7 +60,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Start background token refresh if Lakebase is configured
     _service = None
     if settings.instance_name:
-        from api.services import DatabricksService
+        from services import DatabricksService
 
         _service = DatabricksService()
         await _service.token_manager.start_background_refresh()

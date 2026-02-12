@@ -20,8 +20,8 @@ from databricks.sdk.service.sql import (
     StatementState,
 )
 
-from api.clients.sql_core import Row, dataclass_to_columns, get_type_converter
-from api.clients.sql_escapes import escape_full_name, escape_name
+from clients.sql_core import Row, dataclass_to_columns, get_type_converter
+from clients.sql_escapes import escape_full_name, escape_name
 
 if TYPE_CHECKING:
     from collections.abc import Iterator

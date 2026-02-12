@@ -13,7 +13,7 @@ from functools import cached_property
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.sql import Disposition
 
-from api.clients import (
+from clients import (
     AsyncLakebaseBackend,
     LakebaseBackend,
     OAuthTokenManager,
@@ -22,7 +22,7 @@ from api.clients import (
     StatementExecutionBackend,
     SyncLakebaseBackend,
 )
-from api.core import settings
+from core import settings
 
 logger = logging.getLogger(__name__)
 

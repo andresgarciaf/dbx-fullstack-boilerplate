@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from api.core.context import (
+from core.context import (
     clear_request_id,
     clear_user_token,
     set_request_id,

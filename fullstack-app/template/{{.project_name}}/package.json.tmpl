@@ -8,11 +8,11 @@
     "dev": "./scripts/dev.sh",
     "build": "./scripts/build.sh",
     "clean": "./scripts/clean.sh",
-    "start": "cd src/api && uv run uvicorn src.api.main:app --host 0.0.0.0 --port 8000",
-    "lint": "pnpm --filter @{{.project_name}}/web lint && cd src/api && uv run ruff check src/",
-    "lint:fix": "pnpm --filter @{{.project_name}}/web lint --fix && cd src/api && uv run ruff check --fix src/",
+    "start": "cd src/api && uv run uvicorn main:app --host 0.0.0.0 --port 8000",
+    "lint": "pnpm --filter @{{.project_name}}/web lint && cd src/api && uv run ruff check .",
+    "lint:fix": "pnpm --filter @{{.project_name}}/web lint --fix && cd src/api && uv run ruff check --fix .",
     "typecheck": "pnpm --filter @{{.project_name}}/web typecheck",
-    "format": "pnpm --filter @{{.project_name}}/web format && cd src/api && uv run ruff format src/",
-    "format:check": "pnpm --filter @{{.project_name}}/web format:check && cd src/api && uv run ruff format --check src/"
+    "format": "pnpm --filter @{{.project_name}}/web format && cd src/api && uv run ruff format .",
+    "format:check": "pnpm --filter @{{.project_name}}/web format:check && cd src/api && uv run ruff format --check ."
   }
 }

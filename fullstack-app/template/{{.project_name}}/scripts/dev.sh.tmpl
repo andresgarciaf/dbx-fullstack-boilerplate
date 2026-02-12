@@ -77,7 +77,7 @@ print_status $FRONTEND_READY $BACKEND_READY
 
 # Start backend
 cd src/api
-uv run uvicorn src.api.main:app --reload --host localhost --port $BACKEND_PORT 2>&1 | while read line; do
+uv run uvicorn main:app --reload --host localhost --port $BACKEND_PORT 2>&1 | while read line; do
     if [[ "$line" == *"Uvicorn running"* ]] || [[ "$line" == *"startup complete"* ]]; then
         if [ "$BACKEND_READY" = "false" ]; then
             BACKEND_READY="true"

@@ -16,7 +16,7 @@ trap 'echo "Received shutdown signal..."; kill -TERM "$PID" 2>/dev/null; wait "$
 
 # Run the FastAPI server in the background to enable signal forwarding
 cd src/api
-uv run uvicorn src.api.main:app --host 0.0.0.0 --port "${PORT}" &
+uv run uvicorn main:app --host 0.0.0.0 --port "${PORT}" &
 PID=$!
 
 # Wait for the server process

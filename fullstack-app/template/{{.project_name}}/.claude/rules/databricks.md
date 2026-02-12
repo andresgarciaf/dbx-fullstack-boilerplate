@@ -7,7 +7,7 @@
 - Check `settings.is_deployed` for environment detection
 
 ```python
-from api.core import settings
+from core import settings
 
 # Get configured WorkspaceClient
 ws = WorkspaceClient(config=settings.databricks_config)
@@ -26,7 +26,7 @@ ws = WorkspaceClient(config=settings.databricks_config)
 backend.fetch("SELECT * FROM users WHERE id = %s", (user_id,))
 
 # Good - escaped identifier
-from api.clients import escape_full_name
+from clients import escape_full_name
 table = escape_full_name("catalog.schema.table")
 backend.execute(f"SELECT * FROM {table}")
 
@@ -44,7 +44,7 @@ backend.fetch(f"SELECT * FROM users WHERE id = {user_id}")
 ## Service Pattern
 
 ```python
-from api.services import DatabricksService
+from services import DatabricksService
 
 service = DatabricksService()
 

@@ -6,7 +6,7 @@ from pathlib import Path
 from databricks.sdk.core import Config
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from api.core.context import get_user_token
+from core.context import get_user_token
 
 # env file path
 ENV_FILE = Path(__file__).resolve().parents[5] / ".env"

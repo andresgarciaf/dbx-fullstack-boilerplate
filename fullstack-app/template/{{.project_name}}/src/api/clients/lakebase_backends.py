@@ -19,8 +19,8 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 import psycopg
 
-from api.clients.sql_core import Row, dataclass_to_columns
-from api.clients.sql_escapes import escape_pg_full_name, escape_pg_name
+from clients.sql_core import Row, dataclass_to_columns
+from clients.sql_escapes import escape_pg_full_name, escape_pg_name
 
 if TYPE_CHECKING:
     from collections.abc import Iterator

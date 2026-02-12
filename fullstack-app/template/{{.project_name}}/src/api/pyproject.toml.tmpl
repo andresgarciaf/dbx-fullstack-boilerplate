@@ -28,7 +28,7 @@ build-backend = "uv_build"
 [tool.ruff]
 target-version = "py310"
 line-length = 120
-src = ["src"]
+src = ["."]
 
 [tool.ruff.lint]
 select = [
@@ -51,12 +51,12 @@ select = [
 ignore = ["E501"]  # formatter handles line length
 
 [tool.ruff.lint.per-file-ignores]
-"src/api/clients/lakebase_backends.py" = ["N806"]  # RowClass is conventional for class factories
-"src/api/clients/sql_backends.py" = ["N806"]
-"src/api/services/databricks_service.py" = ["B024"]  # ABC used as marker base class
+"clients/lakebase_backends.py" = ["N806"]  # RowClass is conventional for class factories
+"clients/sql_backends.py" = ["N806"]
+"services/databricks_service.py" = ["B024"]  # ABC used as marker base class
 
 [tool.ruff.lint.isort]
-known-first-party = ["api"]
+known-first-party = ["core", "clients", "routers", "services", "utils", "models"]
 
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "all"

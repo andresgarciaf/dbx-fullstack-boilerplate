@@ -1,7 +1,7 @@
 """Utility functions and decorators."""
 
-from api.utils.cache import TTLCache, cached, clear_cache, ttl_cache
-from api.utils.retry import RetryConfig, retry
+from utils.cache import TTLCache, cached, clear_cache, ttl_cache
+from utils.retry import RetryConfig, retry
 
 __all__ = [
     "RetryConfig",
